@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  database:
+    name: Schema, RLS policies and guardrails import
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: qms
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ['5432:5432']
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qms
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      # pgTAP is how the §15 role/span model is proved. Without it the RLS
+      # suite cannot run, so the build should fail rather than skip it.
+      - name: Install pgTAP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client postgresql-15-pgtap
+
+      - run: npm run typecheck
+      - run: npm run format:check
+
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      - name: Prove the role/span model (ARCHITECTURE.md §15)
+        run: npm run db:test
+
+      - name: Import the guardrails workbook (ARCHITECTURE.md §4.3)
+        run: npm run db:import-guardrails
+
+      # Re-importing must be a no-op. A second run that changes row counts
+      # would mean the upserts are not keyed correctly.
+      - name: Re-import is idempotent
+        run: npm run db:import-guardrails
