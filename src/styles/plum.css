@@ -1,0 +1,324 @@
+/*
+ * Plum Design System tokens — web adaptation (docs/plum-design.md, §14).
+ *
+ * This is the INTERNAL app register: the editorial voice adapted to a denser,
+ * utility-first layout. The cream field, hairline dividers and
+ * plum-red-for-emphasis-only discipline still hold — a dashboard here should
+ * not drift into a generic grey SaaS grid. The customer-facing quote page (M6)
+ * uses the full editorial register instead.
+ *
+ * GT Alpina and Passenger Sans are licensed and not yet in the repository, so
+ * the stacks below fall through to Georgia and system-ui. Drop the woff2 files
+ * into src/styles/fonts/ and add the @font-face rules; nothing else changes.
+ */
+
+:root {
+  /* Surface */
+  --cream: #fffaf2;
+  --cream-deep: #fdf4e8;
+  --cream-warm: #fbf0e1;
+
+  /* Emphasis — one red, doing all the work */
+  --plum-red: #ff4052;
+  --plum-red-deep: #e0303f;
+  --plum-red-press: #c22736;
+
+  /* Ink */
+  --fg-1: #3a0e2b;
+  --fg-2: #6b4159;
+  --fg-muted: #8f6e81;
+  --fg-on-red: #fffaf2;
+
+  /* Hairlines */
+  --line-lavender: #c7b1c0;
+  --line-lavender-2: #ddcbd6;
+
+  /* Severity / intensity, low to high */
+  --sev-blush: #ffe7ea;
+  --sev-pink: #ffd9dc;
+  --sev-coral: #ff9fa8;
+
+  --font-display: 'GT Alpina', Georgia, serif;
+  --font-sans: 'Passenger Sans', system-ui, sans-serif;
+
+  --shadow-cta: 0 2px 12px rgba(58, 14, 43, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(28px, 3.5vw, 40px);
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  font-size: clamp(22px, 2.4vw, 28px);
+  letter-spacing: -0.03em;
+}
+
+h3 {
+  font-size: clamp(18px, 2vw, 22px);
+}
+
+a {
+  color: var(--plum-red);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--plum-red-deep);
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------------- */
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 64px);
+}
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--line-lavender);
+}
+
+.masthead__mark {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--plum-red);
+  letter-spacing: -0.03em;
+}
+
+.masthead__meta {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+/* An uppercase red eyebrow opens every section. */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plum-red);
+  margin: 0 0 10px;
+}
+
+.section {
+  padding: 40px 0;
+}
+
+.section__rule {
+  height: 1px;
+  background: var(--plum-red);
+  border: 0;
+  margin: 16px 0 28px;
+}
+
+.standfirst {
+  max-width: 58ch;
+  color: var(--fg-2);
+  font-size: 16px;
+  margin: 12px 0 0;
+}
+
+/* Tables: hairline rules on a tinted fill, lavender uppercase headers. */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line-lavender);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cream-deep);
+  font-size: 14px;
+}
+
+thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line-lavender);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 14px;
+  vertical-align: middle;
+  border-bottom: 0.5px solid var(--line-lavender-2);
+  color: var(--fg-1);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cell-muted {
+  color: var(--fg-muted);
+}
+
+/* Status chips: uppercase sans on a tinted fill, hairline red border, no
+   rounding. The four-step severity scale carries urgency. */
+.chip {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 0.5px solid var(--plum-red);
+  background: var(--sev-blush);
+  color: var(--fg-1);
+  white-space: nowrap;
+}
+
+.chip--waiting {
+  background: var(--sev-pink);
+}
+
+.chip--urgent {
+  background: var(--sev-coral);
+}
+
+.chip--critical {
+  background: var(--plum-red);
+  color: var(--fg-on-red);
+}
+
+.chip--settled {
+  background: transparent;
+  border-color: var(--line-lavender);
+  color: var(--fg-muted);
+}
+
+/* Buttons: lowercase labels, plum-red fill, barely any radius. */
+.button {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  text-transform: lowercase;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 1.5px;
+  background: var(--plum-red);
+  color: var(--fg-on-red);
+  box-shadow: var(--shadow-cta);
+  cursor: pointer;
+  transition: background 180ms ease-out;
+}
+
+.button:hover {
+  background: var(--plum-red-deep);
+}
+
+.button:active {
+  background: var(--plum-red-press);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button--secondary {
+  background: transparent;
+  color: var(--fg-1);
+  border: 1px solid var(--line-lavender);
+  box-shadow: none;
+}
+
+.button--secondary:hover {
+  background: var(--cream-warm);
+  color: var(--fg-1);
+}
+
+select,
+input[type='text'] {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 8px 10px;
+  color: var(--fg-1);
+  background: var(--cream);
+  border: 1px solid var(--line-lavender);
+  border-radius: 1.5px;
+  min-height: 38px;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.notice {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  padding: 20px 22px;
+  max-width: 62ch;
+}
+
+.notice--error {
+  border-color: var(--plum-red);
+  background: var(--sev-blush);
+}
+
+.empty {
+  padding: 48px 0;
+  color: var(--fg-muted);
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .masthead {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .button {
+    min-height: 44px;
+  }
+}

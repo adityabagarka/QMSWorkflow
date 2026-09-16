@@ -58,3 +58,21 @@ jobs:
       # would mean the upserts are not keyed correctly.
       - name: Re-import is idempotent
         run: npm run db:import-guardrails
+
+  app:
+    name: Application build
+    runs-on: ubuntu-latest
+    env:
+      # Build-time placeholders. Real values are Vercel environment variables;
+      # no credential belongs in this file (§16).
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

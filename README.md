@@ -8,15 +8,19 @@ requirements; `CLAUDE.md` carries scope and conventions.
 
 Current milestone scope (ARCHITECTURE.md §17):
 
-| Piece | State |
-|---|---|
-| Repo scaffolding (Next.js + TypeScript) | done |
-| Core DB schema (§4.2) | done — 40 tables |
-| RLS for the role/span model (§15) | done — 47 assertions passing |
-| Append-only `audit_log` (§16) | done |
-| Guardrails workbook import (§4.3) | done — 12 tables, idempotent |
-| Google Workspace SSO (OIDC) | not started |
-| `access_requests` onboarding flow (§15) | schema done, UI not started |
+| Piece                                   | State                        |
+| --------------------------------------- | ---------------------------- |
+| Repo scaffolding (Next.js + TypeScript) | done                         |
+| Core DB schema (§4.2)                   | done — 40 tables             |
+| RLS for the role/span model (§15)       | done — 47 assertions passing |
+| Append-only `audit_log` (§16)           | done                         |
+| Guardrails workbook import (§4.3)       | done — 12 tables, idempotent |
+| Google Workspace SSO (OIDC)             | not started                  |
+| `access_requests` onboarding flow (§15) | schema done, UI not started  |
+
+M0 is complete as specified, but **not yet deployed**: it has been verified
+against a local PostgreSQL instance, not against the Supabase `ap-south-1`
+project, which needs credentials (see below).
 
 Nothing beyond M0 has been started. M1 (Salesforce sync) is blocked on the
 field-level mapping in §18.4 regardless.
@@ -30,7 +34,26 @@ cp .env.example .env.local     # then fill in DATABASE_URL at minimum
 npm run db:migrate             # apply supabase/migrations in order
 npm run db:test                # prove the §15 role/span model (pgTAP)
 npm run db:import-guardrails   # load the reference workbook
+
+npm run dev                    # needs the Supabase and Google values below
 ```
+
+### What deployment still needs
+
+The application code is finished but has only been run against local Postgres.
+To stand it up on staging:
+
+1. A Supabase project in `ap-south-1`, with its URL and anon key in
+   `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+2. Google OAuth client credentials, entered in the Supabase dashboard under
+   Authentication → Providers → Google, with
+   `https://<project>.supabase.co/auth/v1/callback` as an authorised redirect
+   URI. The credentials go in the dashboard, never in this repository (§16).
+3. `npm run db:migrate` and `npm run db:import-guardrails` against that project.
+
+The first sign-in from `aditya@bagarka.in` becomes the Super Admin
+(`docs/decisions/0002-bootstrap-super-admin.md`), who can then approve everyone
+else.
 
 `npm run db:migrate -- --reset` drops and rebuilds the schema. It refuses to run
 with `NODE_ENV=production`.
@@ -59,7 +82,7 @@ have RLS disabled and be readable by everyone.
 `pg_restore` cleanly into RDS or Cloud SQL later (§3.1). Never edit an applied
 migration; the runner will refuse it. Add a new one.
 
-**`audit_log` is append-only.** Enforced by revoked grants *and* a trigger, so
+**`audit_log` is append-only.** Enforced by revoked grants _and_ a trigger, so
 not even a superuser can rewrite it (§16). The same applies to `case_events`,
 `burn_calculations`, `policy_extraction_edits` and `member_data_exclusions`.
 
@@ -75,7 +98,7 @@ fixture and test uses synthetic data. Production data handling is gated on the
 ## Open decisions
 
 `ARCHITECTURE.md` §18 lists decisions that need a human. Those closed during M0
-are recorded in `docs/decisions/`. Two remain open *within* M0's own surface:
+are recorded in `docs/decisions/`. Two remain open _within_ M0's own surface:
 
 - **Manager write scope** — see `docs/decisions/0004-manager-write-scope.md`.
   Currently implemented conservatively (own deals only).
