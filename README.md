@@ -4,30 +4,41 @@ Internal system for Plum's rollover quote workflow. `ARCHITECTURE.md` is the
 source of truth for the data model, module specs, roles and security
 requirements; `CLAUDE.md` carries scope and conventions.
 
-## Status: M0 — Foundation
+## Status: M0 — Foundation, complete
 
-Current milestone scope (ARCHITECTURE.md §17):
+Signed off on 17 September 2026: deployed to Supabase `ap-south-1`, signed in
+through Google Workspace SSO, and an access request approved through the UI.
 
-| Piece                                   | State                        |
-| --------------------------------------- | ---------------------------- |
-| Repo scaffolding (Next.js + TypeScript) | done                         |
-| Core DB schema (§4.2)                   | done — 40 tables             |
-| RLS for the role/span model (§15)       | done — 47 assertions passing |
-| Append-only `audit_log` (§16)           | done                         |
-| Guardrails workbook import (§4.3)       | done — 12 tables, idempotent |
-| Google Workspace SSO (OIDC)             | not started                  |
-| `access_requests` onboarding flow (§15) | schema done, UI not started  |
+| Piece                                   | State                                                |
+| --------------------------------------- | ---------------------------------------------------- |
+| Repo scaffolding (Next.js + TypeScript) | done                                                 |
+| Core DB schema (§4.2)                   | done — 43 tables, live                               |
+| RLS for the role/span model (§15)       | done — 79 assertions, run against the live database  |
+| Append-only `audit_log` (§16)           | done                                                 |
+| Guardrails workbook import (§4.3)       | done — 1,440 plans, 83,520 coverage rows, idempotent |
+| Google Workspace SSO (OIDC)             | done — signed in end to end                          |
+| `access_requests` onboarding flow (§15) | done — approval exercised in the UI                  |
 
-**Deployed to Supabase `ap-south-1` and verified there.** Run #2 of the
-"Deploy to Supabase staging" workflow applied all 11 migrations, ran all 67
-assertions against the live database, and imported the workbook: 45 relations,
-130 RLS policies, 1,440 plans, 83,520 coverage rows — identical to local.
+Deployment is by hand from the Actions tab ("Deploy to Supabase staging"), not
+on push: it writes to a real database, so it should be a deliberate act. The
+assertions run against that database as part of it, so a deploy that would break
+the §15 guarantees fails rather than lands.
 
-Remaining before M0 can be signed off: the web app is not yet hosted, so nobody
-has signed in end to end. See `docs/SETUP.md` stage 5.
+Nothing beyond M0 has been started.
 
-Nothing beyond M0 has been started. M1 (Salesforce sync) is blocked on the
-field-level mapping in §18.4 regardless.
+### Open before the next milestones
+
+- **M1 is blocked** on the Salesforce field-level mapping in §18.4 — exact API
+  field names for policy expiry, industry and entity type. Needs the SF admin,
+  not engineering.
+- **M3** needs a reading of `min_lives_for_premium`, which §4.3's premium formula
+  treats as a scalar but which one insurer states per family definition. See
+  `docs/decisions/0003-guardrails-import.md`.
+- **M4** needs the workflow orchestrator decision (§18.3, Temporal recommended).
+- **Manager write scope** is implemented conservatively and still unconfirmed.
+  See `docs/decisions/0004-manager-write-scope.md`.
+- **The Plum logo is hotlinked** from `app.plumhq.com` rather than served from
+  this app. See the note in `src/components/masthead.tsx`.
 
 ## Getting started
 
