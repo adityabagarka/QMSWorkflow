@@ -315,3 +315,12 @@ is set to Internal rather than External. See stage 2 step 4.
 
 **Sign-in works, then stops working about a week later.** The Google app is still
 in Testing status. Publish it — see "Publish the app" in stage 2.
+
+**Every page shows `500: MIDDLEWARE_INVOCATION_FAILED` or "This page is
+temporarily unavailable".** The two `NEXT_PUBLIC_` variables are not readable —
+almost always because they were saved as Secret rather than Config. Delete them,
+re-add as Config, and redeploy. Vercel will not let you convert a saved secret,
+so they have to be deleted and re-created.
+
+**The sign-in page says "Configuration incomplete".** Same cause as above, caught
+more gracefully: the site is running but has no Supabase settings.

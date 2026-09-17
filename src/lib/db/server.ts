@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { requireSupabaseEnv } from '@/lib/db/env';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -15,31 +16,21 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 export function supabaseServer() {
   const cookieStore = cookies();
 
-  return createServerClient(
-    requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-    requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (toSet: CookieToSet[]) => {
-          try {
-            for (const { name, value, options } of toSet) {
-              cookieStore.set(name, value, options);
-            }
-          } catch {
-            // Called from a Server Component, where cookies are read-only. The
-            // middleware refreshes the session instead, so this is safe to ignore.
+  const env = requireSupabaseEnv();
+
+  return createServerClient(env.url, env.anonKey, {
+    cookies: {
+      getAll: () => cookieStore.getAll(),
+      setAll: (toSet: CookieToSet[]) => {
+        try {
+          for (const { name, value, options } of toSet) {
+            cookieStore.set(name, value, options);
           }
-        },
+        } catch {
+          // Called from a Server Component, where cookies are read-only. The
+          // middleware refreshes the session instead, so this is safe to ignore.
+        }
       },
     },
-  );
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is not set. See .env.example.`);
-  }
-  return value;
+  });
 }

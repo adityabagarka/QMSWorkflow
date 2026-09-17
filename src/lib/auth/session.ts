@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/db/server';
+import { supabaseEnv } from '@/lib/db/env';
 import { APPROVER_ROLES, type Role } from '@/lib/auth/roles';
 
 export type Session = {
@@ -19,6 +20,12 @@ export type Session = {
  * table anyway. The two must not be able to disagree.
  */
 export async function getSession(): Promise<Session | null> {
+  // Without the Supabase settings there is no way to have a session, and
+  // "nobody is signed in" is the truthful answer. Throwing here would instead
+  // take down every page in the app, including the sign-in page that explains
+  // how to fix the configuration.
+  if (!supabaseEnv()) return null;
+
   const supabase = supabaseServer();
 
   const {
