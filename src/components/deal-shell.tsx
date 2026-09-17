@@ -12,26 +12,25 @@ import {
 export type DealHeader = {
   id: string;
   customer_name: string;
+  deal_type: string;
   industry: string | null;
   entity_type: string | null;
+  location: string | null;
   cover_start_date: string | null;
   insurer_name: string | null;
+  broker_name: string | null;
   policy_start: string | null;
-  sum_insured: number | null;
   expiring_premium: number | null;
   lives: number;
 };
 
 /**
- * The frame every step of a deal shares: who the company is, the four figures
- * an RM checks first, where they are in the sequence, and a two-column body.
+ * The frame every step of a deal shares.
  *
- * One component rather than a layout repeated per page, so the steps cannot
- * drift apart — the point of a wizard is that only the middle changes.
- *
- * The right column is always reference material for the step: the documents and
- * activity on most, the policy itself on the terms step. Narrower than the main
- * column because it is there to be glanced at, not worked in.
+ * One component rather than a layout repeated per page: the point of a wizard
+ * is that only the middle changes, and when the chrome is written per step it
+ * drifts — which is how the footer buttons ended up in a different place
+ * depending on which step you were on.
  */
 export function DealShell({
   deal,
@@ -49,7 +48,6 @@ export function DealShell({
 }: {
   deal: DealHeader;
   currentPhase: number;
-  /** Steps beyond this are not yet reachable. */
   maxReachedPhase: number;
   title: string;
   children: React.ReactNode;
@@ -59,10 +57,10 @@ export function DealShell({
   nextLabel?: string;
   nextDisabled?: boolean;
   nextNote?: string;
-  /** Steps whose reference column carries a document rather than a list. */
   wideAside?: boolean;
 }) {
   const chip = coverStartChip(deal.cover_start_date);
+  const stage = STAGES.find((s) => s.phase === currentPhase);
 
   return (
     <>
@@ -70,70 +68,66 @@ export function DealShell({
         <Link href="/deals">← Deals</Link>
       </div>
 
-      <div className="deal-hero">
+      {/* Everything identifying about the deal, in one block above the steps. */}
+      <section
+        className={
+          deal.deal_type === 'renewal' ? 'summary summary--renewal' : 'summary summary--rollover'
+        }
+      >
         <div>
-          <h1>{deal.customer_name}</h1>
-          <p className="deal-hero__what">{describeCompany([deal.entity_type, deal.industry])}</p>
-        </div>
-        <div className="deal-hero__start">
-          <div className="label">Cover starts</div>
-          <div className="date">{formatDate(deal.cover_start_date)}</div>
-          <div style={{ marginTop: 5 }}>
+          <h1 className="summary__name">{deal.customer_name}</h1>
+          <p className="summary__what">
+            {describeCompany([deal.entity_type, deal.industry, deal.location])}
+          </p>
+          <div className="summary__start">
+            <span className="label">Cover starts</span>
+            <span className="date">{formatDate(deal.cover_start_date)}</span>
             <span className={chip.className}>{chip.label}</span>
           </div>
         </div>
-      </div>
 
-      <div className="facts">
-        <div className="facts__item">
-          <div className="facts__label">Incumbent</div>
-          <div className="facts__value">{deal.insurer_name ?? '—'}</div>
-          {deal.policy_start ? (
-            <div className="facts__note">since {formatDate(deal.policy_start)}</div>
-          ) : null}
-        </div>
-        <div className="facts__item">
-          <div className="facts__label">Sum insured</div>
-          <div className="facts__value">{formatRupees(deal.sum_insured)}</div>
-        </div>
-        <div className="facts__item">
-          <div className="facts__label">Lives</div>
-          <div className="facts__value">{deal.lives > 0 ? formatCount(deal.lives) : '—'}</div>
-        </div>
-        <div className="facts__item">
-          <div className="facts__label">Expiring premium</div>
-          <div className="facts__value">{formatRupees(deal.expiring_premium)}</div>
-          {/* The one place GST is qualified, against the figure it applies to. */}
-          <div className="facts__note">{GST_NOTE}</div>
-        </div>
-      </div>
+        <dl className="summary__rows">
+          <div>
+            <dt>Incumbent insurer</dt>
+            <dd>{deal.insurer_name ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Incumbent broker</dt>
+            <dd>{deal.broker_name ?? '—'}</dd>
+          </div>
+          <div>
+            <dt>Lives</dt>
+            <dd>{deal.lives > 0 ? formatCount(deal.lives) : '—'}</dd>
+          </div>
+          <div>
+            <dt>Expiring premium</dt>
+            <dd>
+              {formatRupees(deal.expiring_premium)}
+              {/* The one place GST is qualified, against the figure it applies to. */}
+              <span className="summary__gst">{GST_NOTE}</span>
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-      {/* Steps are links, so going back to review or edit an earlier one is a
-          click rather than a retraced path. Steps ahead of where the deal has
-          reached are inert. */}
       <nav className="wiz">
-        {STAGES.map((stage) => {
-          const reachable = stage.phase <= maxReachedPhase;
+        {STAGES.map((s) => {
+          const reachable = s.phase <= maxReachedPhase;
           const className =
-            stage.phase === currentPhase
-              ? 'is-now'
-              : stage.phase < currentPhase
-                ? 'is-done'
-                : undefined;
-
+            s.phase === currentPhase ? 'is-now' : s.phase < currentPhase ? 'is-done' : undefined;
           const body = (
             <>
-              <span className="wiz__n">{stage.phase + 1}</span>
-              <span className="wiz__t">{stage.label}</span>
+              <span className="wiz__n">{s.phase + 1}</span>
+              <span className="wiz__t">{s.label}</span>
             </>
           );
 
           return reachable ? (
-            <Link key={stage.phase} href={stageHref(deal.id, stage.phase)} className={className}>
+            <Link key={s.phase} href={stageHref(deal.id, s.phase)} className={className}>
               {body}
             </Link>
           ) : (
-            <span key={stage.phase} className="wiz__locked">
+            <span key={s.phase} className="wiz__locked">
               {body}
             </span>
           );
@@ -145,33 +139,41 @@ export function DealShell({
           <h2>{title}</h2>
           <hr className="section__rule" />
           {children}
-
-          <div className="step-nav">
-            {back ? (
-              <Link className="button button--secondary" href={back}>
-                ← back
-              </Link>
-            ) : (
-              <span />
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              {nextNote ? (
-                <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>{nextNote}</span>
-              ) : null}
-              {next && !nextDisabled ? (
-                <Link className="button" href={next}>
-                  {nextLabel} →
-                </Link>
-              ) : next ? (
-                <button className="button" type="button" disabled>
-                  {nextLabel} →
-                </button>
-              ) : null}
-            </div>
-          </div>
         </div>
-
         {aside ? <aside className="step__aside">{aside}</aside> : null}
+      </div>
+
+      {/* One footer, every step: back hard left, forward hard right. */}
+      <div className="stepfoot">
+        {back ? (
+          <Link className="button button--secondary" href={back}>
+            back
+          </Link>
+        ) : (
+          <span />
+        )}
+
+        <span className="stepfoot__mid">
+          Step {currentPhase + 1} of {STAGES.length}
+          {stage ? ` · ${stage.label}` : ''}
+        </span>
+
+        <span className="stepfoot__right">
+          {nextNote ? (
+            <span style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>{nextNote}</span>
+          ) : null}
+          {next && !nextDisabled ? (
+            <Link className="button" href={next}>
+              {nextLabel}
+            </Link>
+          ) : next ? (
+            <button className="button" type="button" disabled>
+              {nextLabel}
+            </button>
+          ) : (
+            <span />
+          )}
+        </span>
       </div>
     </>
   );

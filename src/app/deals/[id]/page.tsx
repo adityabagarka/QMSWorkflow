@@ -5,10 +5,11 @@ import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
-import { describeCompany, formatDate } from '@/lib/format';
+import { appetiteOptions } from '@/lib/cases/appetite';
+import { CompanyForm } from './company-form';
 
-/** Step 1 — the company. What we know, and what is still missing. */
-export default async function DealPage({ params }: { params: { id: string } }) {
+/** Step 1 — who we are quoting for. */
+export default async function CompanyStep({ params }: { params: { id: string } }) {
   const session = await requireActiveSession();
   const loaded = await loadDealHeader(params.id);
   if (!loaded) notFound();
@@ -16,19 +17,33 @@ export default async function DealPage({ params }: { params: { id: string } }) {
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
 
-  const { data: events } = await supabase
-    .from('case_events')
-    .select('event_type, created_at')
-    .eq('case_id', header.id)
-    .order('created_at', { ascending: false })
-    .limit(6)
-    .returns<{ event_type: string; created_at: string }[]>();
+  const [{ industries, entityTypes }, { data: deal }, { data: events }] = await Promise.all([
+    appetiteOptions(),
+    supabase
+      .from('cases')
+      .select(
+        'customer_name, gstin, location, entity_type, industry, date_of_incorporation, cover_start_date',
+      )
+      .eq('id', params.id)
+      .single<{
+        customer_name: string;
+        gstin: string | null;
+        location: string | null;
+        entity_type: string | null;
+        industry: string | null;
+        date_of_incorporation: string | null;
+        cover_start_date: string | null;
+      }>(),
+    supabase
+      .from('case_events')
+      .select('event_type, created_at')
+      .eq('case_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(6)
+      .returns<{ event_type: string; created_at: string }[]>(),
+  ]);
 
-  const missing = [
-    !header.entity_type && 'constitution',
-    !header.industry && 'industry',
-    !header.cover_start_date && 'cover start date',
-  ].filter(Boolean) as string[];
+  if (!deal) notFound();
 
   return (
     <main className="shell">
@@ -41,7 +56,6 @@ export default async function DealPage({ params }: { params: { id: string } }) {
         title="Company"
         next={stageHref(header.id, 1)}
         nextLabel="expiring policy"
-        nextNote={missing.length > 0 ? `${missing.join(', ')} not captured` : undefined}
         aside={
           <div className="aside-block">
             <h3>Activity</h3>
@@ -62,25 +76,17 @@ export default async function DealPage({ params }: { params: { id: string } }) {
                 ))}
               </ul>
             ) : (
-              <p className="field__hint">Nothing recorded yet.</p>
+              <p className="ff__hint">Nothing recorded yet.</p>
             )}
           </div>
         }
       >
-        <dl className="detail-list">
-          <div>
-            <dt>Legal name</dt>
-            <dd>{header.customer_name}</dd>
-          </div>
-          <div>
-            <dt>Constitution and industry</dt>
-            <dd>{describeCompany([header.entity_type, header.industry])}</dd>
-          </div>
-          <div>
-            <dt>Cover starts</dt>
-            <dd>{formatDate(header.cover_start_date)}</dd>
-          </div>
-        </dl>
+        <CompanyForm
+          dealId={params.id}
+          initial={deal}
+          industries={industries}
+          entityTypes={entityTypes}
+        />
       </DealShell>
     </main>
   );

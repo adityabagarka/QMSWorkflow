@@ -1086,3 +1086,227 @@ input[type='text'] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------------------------------------------------------------------- */
+/* Form controls                                                           */
+/* ---------------------------------------------------------------------- */
+
+.ff-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 28px;
+}
+
+.ff {
+  display: block;
+  margin-bottom: 22px;
+  min-width: 0;
+}
+
+.ff--wide {
+  grid-column: 1 / -1;
+}
+
+.ff__label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  margin-bottom: 7px;
+}
+
+/* One control style, one height, everywhere. */
+.ff__control {
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  color: var(--fg-1);
+  background: var(--cream-deep);
+  border: 1px solid var(--line-lavender);
+  border-radius: 1.5px;
+  appearance: none;
+}
+
+select.ff__control {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--fg-muted) 50%),
+    linear-gradient(135deg, var(--fg-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) 19px,
+    calc(100% - 12px) 19px;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+.ff__control:focus {
+  outline: 2px solid var(--plum-red);
+  outline-offset: -1px;
+  background: var(--cream);
+}
+
+.ff__hint {
+  display: block;
+  font-size: 12.5px;
+  color: var(--fg-2);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Deal summary                                                            */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * One block carrying everything identifying about the deal, above the steps.
+ *
+ * Previously this was a name, then a four-column strip of mostly empty figures,
+ * spread over a great deal of height for very little information. Rows are
+ * denser and read faster, and the tint lets the deal type be recognised before
+ * anything is read.
+ */
+.summary {
+  border: 1px solid var(--line-lavender);
+  padding: 20px 24px;
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 24px 40px;
+  align-items: start;
+}
+
+/*
+ * Tinted by deal type, so a rollover and a renewal are distinguishable at a
+ * glance. Deliberately faint: this sits behind the most important text on the
+ * page and is meant to be recognised rather than noticed.
+ */
+.summary--rollover {
+  background: rgba(255, 64, 82, 0.045);
+  border-color: var(--sev-pink);
+}
+
+.summary--renewal {
+  background: rgba(47, 93, 58, 0.05);
+  border-color: var(--gain-line);
+}
+
+.summary__name {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 32px);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.summary__what {
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin: 6px 0 0;
+}
+
+.summary__start {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.summary__start .label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+
+.summary__start .date {
+  font-family: var(--font-display);
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+/* Incumbent programme, row-wise: label left, value right, hairline between. */
+.summary__rows {
+  margin: 0;
+}
+
+.summary__rows div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 0.5px solid var(--line-lavender-2);
+}
+
+.summary__rows div:last-child {
+  border-bottom: 0;
+}
+
+.summary__rows dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.summary__rows dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fg-1);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.summary__gst {
+  font-size: 11px;
+  color: var(--fg-muted);
+  display: block;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Step footer                                                             */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * One footer for every step: back hard left, forward hard right, always in the
+ * same place. It was previously laid out per page, which put the buttons in
+ * different positions depending on which step you were on.
+ *
+ * Sticky, so the way forward is reachable without scrolling to the end of a
+ * long step — and so every step ends at the same place regardless of length.
+ */
+.stepfoot {
+  position: sticky;
+  bottom: 0;
+  margin-top: 44px;
+  padding: 14px 0;
+  background: var(--cream);
+  border-top: 1px solid var(--line-lavender);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  z-index: 3;
+}
+
+.stepfoot__mid {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  text-align: center;
+  flex: 1;
+}
+
+.stepfoot__right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}

@@ -7,12 +7,16 @@ type Raw = {
   current_phase: number;
   industry: string | null;
   entity_type: string | null;
+  deal_type: string;
+  location: string | null;
   cover_start_date: string | null;
   policies: {
     id: string;
     insurer_name: string | null;
+    broker_name: string | null;
     policy_start: string | null;
     sum_insured: number | null;
+    expiring_premium: number | null;
   }[];
 };
 
@@ -33,7 +37,7 @@ export async function loadDealHeader(dealId: string): Promise<{
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, customer_name, current_phase, industry, entity_type, cover_start_date, policies(id, insurer_name, policy_start, sum_insured)',
+      'id, customer_name, current_phase, deal_type, industry, entity_type, location, cover_start_date, policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
     )
     .eq('id', dealId)
     .maybeSingle<Raw>();
@@ -51,15 +55,15 @@ export async function loadDealHeader(dealId: string): Promise<{
     header: {
       id: data.id,
       customer_name: data.customer_name,
+      deal_type: data.deal_type,
       industry: data.industry,
       entity_type: data.entity_type,
+      location: data.location,
       cover_start_date: data.cover_start_date,
       insurer_name: policy?.insurer_name ?? null,
+      broker_name: policy?.broker_name ?? null,
       policy_start: policy?.policy_start ?? null,
-      sum_insured: policy?.sum_insured ?? null,
-      // Premium lives on the expiring policy and is captured during policy
-      // review; null until then rather than shown as zero.
-      expiring_premium: null,
+      expiring_premium: policy?.expiring_premium ?? null,
       lives: count ?? 0,
     },
     currentPhase: data.current_phase,
