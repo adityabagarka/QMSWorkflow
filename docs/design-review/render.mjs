@@ -5,7 +5,7 @@ const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
 });
 const page = await browser.newPage({
-  viewport: { width: 1280, height: 900 },
+  viewport: { width: 1600, height: 1000 },
   deviceScaleFactor: 2,
 });
 for (const f of files) {

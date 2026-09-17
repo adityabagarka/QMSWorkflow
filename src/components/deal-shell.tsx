@@ -45,6 +45,7 @@ export function DealShell({
   nextLabel = 'next',
   nextDisabled = false,
   nextNote,
+  wideAside = false,
 }: {
   deal: DealHeader;
   currentPhase: number;
@@ -58,6 +59,8 @@ export function DealShell({
   nextLabel?: string;
   nextDisabled?: boolean;
   nextNote?: string;
+  /** Steps whose reference column carries a document rather than a list. */
+  wideAside?: boolean;
 }) {
   const chip = coverStartChip(deal.cover_start_date);
 
@@ -137,7 +140,7 @@ export function DealShell({
         })}
       </nav>
 
-      <div className={aside ? 'step' : 'step step--full'}>
+      <div className={aside ? (wideAside ? 'step step--wide-aside' : 'step') : 'step step--full'}>
         <div className="step__main">
           <h2>{title}</h2>
           <hr className="section__rule" />

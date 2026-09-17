@@ -84,7 +84,7 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
   const policyDoc = docs.data?.[0] ?? null;
 
   return (
-    <main className="shell">
+    <main className="shell shell--wide">
       <Masthead meta={session.email} />
 
       <DealShell
@@ -96,6 +96,7 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
         next={stageHref(header.id, 5)}
         nextLabel="build the RFQ"
         nextDisabled={outstanding > 0}
+        wideAside
         nextNote={
           outstanding > 0
             ? `${outstanding} of ${rows.length} still to confirm`

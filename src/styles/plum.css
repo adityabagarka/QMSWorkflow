@@ -985,3 +985,23 @@ input[type='text'] {
   font-size: 18px;
   color: var(--fg-1);
 }
+
+/*
+ * The terms step needs more width than the rest: a benefit label, the expiring
+ * value and one column per option, beside the policy itself. At the standard
+ * column width the grid would scroll horizontally from the first option, which
+ * is exactly where misreading a row against the wrong column starts.
+ */
+.shell--wide {
+  max-width: 1480px;
+}
+
+.step--wide-aside {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+@media (max-width: 1240px) {
+  .step--wide-aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
