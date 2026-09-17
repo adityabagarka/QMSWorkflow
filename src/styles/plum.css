@@ -111,11 +111,12 @@ a:hover {
   border-bottom: 1px solid var(--line-lavender);
 }
 
-.masthead__mark {
-  font-family: var(--font-display);
-  font-size: 19px;
-  color: var(--plum-red);
-  letter-spacing: -0.03em;
+.masthead__logo {
+  display: block;
+  height: 24px;
+  width: auto;
+  /* The design system keeps the logo small and unfussy; the cream field and
+     the hairline rule below do the framing. */
 }
 
 .masthead__meta {
@@ -254,6 +255,60 @@ tbody tr:last-child td {
 .button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/*
+ * Google sign-in button.
+ *
+ * A deliberate exception to the design system's button style. Google publishes
+ * branding rules for this control, and more to the point people recognise it on
+ * sight: on the one screen where someone is handing over credentials, looking
+ * exactly like the thing they expect is worth more than looking like the rest of
+ * the app. Everything around it stays Plum — cream field, serif headline, red
+ * eyebrow — so the page still reads as ours.
+ */
+.google-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 16px;
+  background: #fff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  font-family: 'Roboto', var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+  transition:
+    background 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.google-button:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+}
+
+.google-button:active {
+  background: #f1f3f4;
+}
+
+.google-button:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 2px;
+}
+
+.google-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.google-button svg {
+  flex: 0 0 auto;
 }
 
 .button--secondary {

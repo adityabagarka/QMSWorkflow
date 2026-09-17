@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { isApprover } from '@/lib/auth/roles';
+import { Masthead } from '@/components/masthead';
 
 export default async function Home() {
   const session = await getSession();
@@ -15,10 +16,7 @@ export default async function Home() {
 
   return (
     <main className="shell">
-      <header className="masthead">
-        <span className="masthead__mark">Plum</span>
-        <span className="masthead__meta">{session.email}</span>
-      </header>
+      <Masthead meta={session.email} />
       <section className="section">
         <p className="eyebrow">Rollover quote management</p>
         <h1>Your access is active.</h1>

@@ -2,6 +2,7 @@ import { requireApprover } from '@/lib/auth/session';
 import { ROLE_LABELS, type Role } from '@/lib/auth/roles';
 import { supabaseServer } from '@/lib/db/server';
 import { RequestRow } from './request-row';
+import { Masthead } from '@/components/masthead';
 
 type PendingRequest = {
   id: string;
@@ -38,12 +39,7 @@ export default async function AccessRequestsPage() {
 
   return (
     <main className="shell">
-      <header className="masthead">
-        <span className="masthead__mark">Plum</span>
-        <span className="masthead__meta">
-          {session.email} · {session.role ? ROLE_LABELS[session.role] : ''}
-        </span>
-      </header>
+      <Masthead meta={`${session.email} · ${session.role ? ROLE_LABELS[session.role] : ''}`} />
 
       <section className="section">
         <p className="eyebrow">Administration</p>

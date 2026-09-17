@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { SignInButton } from './sign-in-button';
+import { Masthead } from '@/components/masthead';
 
 export default async function SignInPage({ searchParams }: { searchParams: { error?: string } }) {
   const session = await getSession();
@@ -8,9 +9,7 @@ export default async function SignInPage({ searchParams }: { searchParams: { err
 
   return (
     <main className="shell">
-      <header className="masthead">
-        <span className="masthead__mark">Plum</span>
-      </header>
+      <Masthead />
 
       <section className="section">
         <p className="eyebrow">Rollover quote management</p>

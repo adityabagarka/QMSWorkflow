@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { Masthead } from '@/components/masthead';
 
 export default async function PendingPage() {
   const session = await getSession();
@@ -11,10 +12,7 @@ export default async function PendingPage() {
 
   return (
     <main className="shell">
-      <header className="masthead">
-        <span className="masthead__mark">Plum</span>
-        <span className="masthead__meta">{session.email}</span>
-      </header>
+      <Masthead meta={session.email} />
 
       <section className="section">
         <p className="eyebrow">{suspended ? 'Access suspended' : 'Awaiting approval'}</p>
