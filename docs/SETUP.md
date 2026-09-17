@@ -3,12 +3,13 @@
 A step-by-step guide, written for someone who does not write code. You will not
 need to write any. Everything here is filling in web forms and copying values.
 
-There are four stages. Budget about an hour in total.
+There are five stages. Budget about an hour and a quarter in total.
 
 1. Create the database (Supabase) — about 10 minutes
 2. Create the Google sign-in credentials — about 20 minutes
 3. Connect the two together — about 5 minutes
 4. Build the database by pressing a button on GitHub — about 15 minutes
+5. Put the website online (Vercel) — about 15 minutes
 
 A note on why this part is yours rather than mine: these accounts are tied to
 Plum's identity and billing, and the Google credentials control who can log in
@@ -83,6 +84,14 @@ know the system exists. That is what you are registering here.
    Internal means only people with a Plum Workspace account can ever sign in.
    External would let anyone with any Google account reach the login screen.
    Choose Internal.
+
+   **Important, if the first Super Admin is still `aditya@bagarka.in`:**
+   Internal blocks every account outside the Plum Workspace — Google rejects
+   them before they ever reach this system, so a `bagarka.in` address could
+   never complete its first sign-in. Either move the first Super Admin to
+   `aditya@plumhq.com` (recommended, and one line to change), or choose
+   External here. Do not choose Internal and keep a `bagarka.in` Super Admin;
+   that combination cannot sign in at all.
 
    If Internal is greyed out, your account is not a Workspace administrator —
    ask whoever manages Google Workspace at Plum to do this stage, or to grant
@@ -194,6 +203,57 @@ the first Super Admin, so you become one automatically. Everyone else who signs
 in lands in the approval queue with no access until you approve them and give
 them a role and a manager.
 
+## Stage 5 — Put the website online
+
+The database is built. This stage puts the actual web page somewhere you can
+open it. Vercel is the hosting company for this half; it reads the code straight
+from GitHub.
+
+### 5a. Connect the repository
+
+1. Go to **vercel.com** and sign in with GitHub.
+2. **Add New** → **Project**, and pick **QMSWorkflow** from the list.
+3. Leave every build setting as it comes — Vercel recognises this kind of
+   project on its own.
+
+### 5b. Add three settings
+
+Before clicking Deploy, open **Environment Variables** and add:
+
+| Name                            | Value                                      |
+| ------------------------------- | ------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      | `https://exfiksdvnctzxkwswwgk.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon key from stage 1                  |
+| `DATABASE_URL`                  | the Session pooler string from stage 4a    |
+
+The first two are the public ones. `DATABASE_URL` is the secret — Vercel
+encrypts it, the same as GitHub does.
+
+Then click **Deploy** and wait a couple of minutes. Vercel gives you a web
+address, something like `qmsworkflow.vercel.app`.
+
+### 5c. Tell Supabase about that address
+
+Sign-in will not work until Supabase knows where to send people back to.
+
+In Supabase: **Authentication** → **URL Configuration**
+
+- **Site URL:** your Vercel address, e.g. `https://qmsworkflow.vercel.app`
+- **Redirect URLs:** add `https://qmsworkflow.vercel.app/auth/callback`
+
+Save. Skipping this gives a "redirect not allowed" error at sign-in.
+
+### 5d. Sign in
+
+Open your Vercel address and click **sign in with google**.
+
+If everything is right you land on the access requests screen as Super Admin,
+with an empty queue. That is M0 finished: you are signed in, the database is
+enforcing who can see what, and the guardrails data is loaded.
+
+Tell me either way — if it fails, the exact wording of the error tells me which
+of the settings above is off.
+
 ## Things that commonly go wrong
 
 **"redirect URI mismatch" when signing in.** The address in stage 2 step 7 does
@@ -226,3 +286,10 @@ your password.
 **The first step of the deploy prints your connection details.** That is
 deliberate, so a wrong setting is obvious. It shows the username, host, port and
 database, and only the _length_ of the password — never the password itself.
+
+**Sign-in says the redirect is not allowed.** Stage 5c has not been done, or the
+address does not match exactly — including `https://` and no trailing slash.
+
+**Google refuses the sign-in before the app is even reached.** The consent screen
+is set to Internal and the account is not in the Plum Workspace. See the note in
+stage 2 step 4.

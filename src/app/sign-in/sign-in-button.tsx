@@ -13,14 +13,19 @@ export function SignInButton() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
 
+    // Deliberately no `hd` parameter. It would restrict Google's account
+    // chooser to a single Workspace domain, and more than one domain is
+    // allowed to sign in (see allowed_email_domains) — including the one the
+    // bootstrap Super Admin uses. Setting `hd` would lock that account out of
+    // its own first sign-in.
+    //
+    // Nothing is lost by omitting it: `hd` is a convenience, never the control.
+    // The real gate is app.is_allowed_email_domain() in the database, which
+    // rejects a disallowed address before any user row is created.
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        // Restricts the Google account chooser to the Workspace domain. This is
-        // a convenience, not the control: the allowlist is enforced in the
-        // database by app.is_allowed_email_domain().
-        queryParams: { hd: process.env.NEXT_PUBLIC_PRIMARY_EMAIL_DOMAIN ?? '' },
       },
     });
   }

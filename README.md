@@ -18,10 +18,13 @@ Current milestone scope (ARCHITECTURE.md §17):
 | Google Workspace SSO (OIDC)             | not started                  |
 | `access_requests` onboarding flow (§15) | schema done, UI not started  |
 
-M0 is complete as specified and verified against a local PostgreSQL instance.
-It is **not yet deployed** to the Supabase `ap-south-1` project: deployment runs
-from the "Deploy to Supabase staging" GitHub Actions workflow, which needs a
-`DATABASE_URL` repository secret. See `docs/SETUP.md` stage 4.
+**Deployed to Supabase `ap-south-1` and verified there.** Run #2 of the
+"Deploy to Supabase staging" workflow applied all 11 migrations, ran all 67
+assertions against the live database, and imported the workbook: 45 relations,
+130 RLS policies, 1,440 plans, 83,520 coverage rows — identical to local.
+
+Remaining before M0 can be signed off: the web app is not yet hosted, so nobody
+has signed in end to end. See `docs/SETUP.md` stage 5.
 
 Nothing beyond M0 has been started. M1 (Salesforce sync) is blocked on the
 field-level mapping in §18.4 regardless.
