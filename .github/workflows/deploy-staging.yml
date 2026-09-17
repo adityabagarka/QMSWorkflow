@@ -46,22 +46,42 @@ jobs:
         run: npm run db:check
 
       - name: Apply migrations
+        id: migrate
         run: npm run db:migrate
 
       # §15 requires the database itself to enforce who can see which deals.
       # Proving that on the real instance matters more than proving it locally,
       # because this is where the policies actually have to hold.
       - name: Prove the role/span model on the real database
+        id: verify
         run: npm run db:test
 
       - name: Import the guardrails workbook
-        if: ${{ inputs.import_guardrails }}
+        id: seed
+        if: ${{ inputs.import_guardrails && !cancelled() }}
         run: npm run db:import-guardrails
 
       - name: Summarise
         if: always()
+        env:
+          MIGRATE: ${{ steps.migrate.outcome }}
+          VERIFY: ${{ steps.verify.outcome }}
+          SEED: ${{ steps.seed.outcome }}
         run: |
           echo "### Staging deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # Say which stage did what. A failure after the migrations have
+          # applied means the schema IS deployed and only the checks failed —
+          # which reads identically to a total failure without this.
+          mark() { [ "$1" = "success" ] && echo "applied" || { [ "$1" = "skipped" ] && echo "skipped" || echo "FAILED"; }; }
+          echo "- Migrations: $(mark "$MIGRATE")" >> $GITHUB_STEP_SUMMARY
+          echo "- Checks: $(mark "$VERIFY")" >> $GITHUB_STEP_SUMMARY
+          echo "- Guardrails import: $(mark "$SEED")" >> $GITHUB_STEP_SUMMARY
+          if [ "$MIGRATE" = "success" ] && [ "$VERIFY" != "success" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "> The schema is deployed. The checks failed, so something about the database does not match what the tests expect — read the failing assertion before re-running." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
           psql "$DATABASE_URL" -tAc "select count(*) from information_schema.tables where table_schema='public'" \
             | xargs -I{} echo "- Tables: {}" >> $GITHUB_STEP_SUMMARY
           psql "$DATABASE_URL" -tAc "select count(*) from pg_policies where schemaname='public'" \

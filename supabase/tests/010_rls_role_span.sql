@@ -71,6 +71,13 @@ grant execute on function rows_affected(text) to authenticated;
 grant select on ids to authenticated;
 grant execute on function uid_of(text), case_of(text) to authenticated;
 
+-- Counts below are scoped to cases owned by fixture users, never to the whole
+-- table. Deploy #8 failed on "Admin sees every deal" once real deals existed:
+-- the assertion counted every row an Admin could see, which by design is all of
+-- them, so it measured the production database rather than the fixture. The
+-- guarantee under test is that an Admin sees every fixture case — not that the
+-- system contains six.
+
 -- Act as a given user for the statements that follow.
 create or replace procedure act_as(p_who text) language plpgsql as $$
 begin
@@ -83,9 +90,11 @@ end $$;
 call act_as('c1');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 1,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 1,
   'Consultant sees exactly their own case');
-select is((select customer_name from cases), 'Acme Synthetic Pvt Ltd',
+select is(
+  (select customer_name from cases where owner_user_id in (select id from ids)),
+  'Acme Synthetic Pvt Ltd',
   'Consultant sees the right case');
 select is((select count(*) from cases where owner_user_id = uid_of('c2'))::int, 0,
   'Consultant cannot see a peer''s case under the same manager');
@@ -117,7 +126,7 @@ reset role;
 call act_as('mgr');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 3,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 3,
   'Manager sees own case plus both direct reports'' cases');
 select is((select count(*) from cases where owner_user_id = uid_of('c3'))::int, 0,
   'Manager cannot see a case outside their subtree');
@@ -170,7 +179,7 @@ select is((select count(*) from cases where owner_user_id = uid_of('c3') and sta
 call act_as('hod');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 4,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 4,
   'HoD sees the entire subtree at every depth, including grandchildren');
 
 select lives_ok(
@@ -193,7 +202,7 @@ reset role;
 call act_as('leader');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 0,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 0,
   'Leader with no reports sees no deals — span is a subtree, not the org');
 select lives_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('Leader case', uid_of('leader')) $$,
@@ -209,7 +218,7 @@ call act_as('admin');
 set local role authenticated;
 
 -- Four seeded, plus the two the HoD and Leader created above.
-select is((select count(*) from cases)::int, 6,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 6,
   'Admin sees every deal');
 select throws_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('Admin case', uid_of('admin')) $$,
@@ -256,7 +265,7 @@ reset role;
 call act_as('super');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 6,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 6,
   'Super Admin sees every deal');
 select lives_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('SA case', uid_of('super')) $$,
@@ -274,7 +283,7 @@ select isnt((select count(*) from audit_log)::int, null,
 reset role;
 call act_as('pending');
 set local role authenticated;
-select is((select count(*) from cases)::int, 0,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 0,
   'Pending user sees no deals');
 select is((select count(*) from ref_enums)::int, 0,
   'Pending user sees no reference data');
@@ -282,13 +291,13 @@ select is((select count(*) from ref_enums)::int, 0,
 reset role;
 call act_as('suspended');
 set local role authenticated;
-select is((select count(*) from cases)::int, 0,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 0,
   'Suspended user sees no deals even though a role is still set');
 
 reset role;
 select set_config('app.current_user_id', '', true);
 set local role authenticated;
-select is((select count(*) from cases)::int, 0,
+select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 0,
   'Unauthenticated session sees no deals');
 
 -- ==========================================================================
