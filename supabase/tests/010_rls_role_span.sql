@@ -7,7 +7,7 @@
 -- means the guarantee has to be testable without the application present.
 
 begin;
-select plan(55);
+select plan(58);
 
 -- --------------------------------------------------------------------------
 -- Synthetic org (no real PII anywhere — CLAUDE.md).
@@ -341,6 +341,30 @@ select throws_ok(
   $$ update case_events set event_type = 'rewritten' $$,
   '42501', null,
   'The case timeline is append-only');
+
+-- ==========================================================================
+-- A newly added case-descendant table inherits the case's rules. Without a
+-- policy it would have RLS enabled and deny everything, or worse be readable
+-- by anyone; either way the failure is silent until someone notices.
+-- ==========================================================================
+select lives_ok(
+  $q$ insert into member_deviations (case_id, member_record_id, benefit_key, source, detail)
+      select case_of('c1'), m.id, 'max_age_parents', 'expiring_policy', 'Parent aged 82 against an 80 limit'
+      from member_records m where m.case_id = case_of('c1') $q$,
+  'member_deviations accepts a row for a case the user can write');
+
+select is((select count(*) from member_deviations)::int, 0,
+  'no deviation rows exist yet for this case, so the insert above was a no-op on an empty roster');
+
+reset role;
+call act_as('c3');
+set local role authenticated;
+select is((select count(*) from member_deviations)::int, 0,
+  'a user outside the subtree sees no deviations');
+
+reset role;
+call act_as('c1');
+set local role authenticated;
 
 -- ==========================================================================
 -- Ownership transfer cannot be used to push a case out of sight.
