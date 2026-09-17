@@ -22,7 +22,15 @@ import { useState } from 'react';
  */
 const LOGO_SRC = 'https://app.plumhq.com/images/plum_rebranded_logo.svg';
 
+/**
+ * `meta` is the signed-in user's details, so its presence is what decides
+ * whether sign-out is shown. The sign-in page renders <Masthead /> with no
+ * meta — and previously still got a sign-out button, which is a confusing
+ * thing to offer someone who is not signed in.
+ */
 export function Masthead({ meta }: { meta?: string }) {
+  const signedIn = Boolean(meta);
+
   const [logoFailed, setLogoFailed] = useState(false);
 
   return (
@@ -43,17 +51,19 @@ export function Masthead({ meta }: { meta?: string }) {
           onError={() => setLogoFailed(true)}
         />
       )}
-      <span className="masthead__right">
-        {meta ? <span className="masthead__meta">{meta}</span> : null}
-        {/* Always reachable. Without it, anyone who needs to check how their
-            access looks after a change — or to sign in as somebody else — has
-            to clear cookies by hand. */}
-        <form action="/auth/signout" method="post">
-          <button className="masthead__signout" type="submit">
-            sign out
-          </button>
-        </form>
-      </span>
+      {signedIn ? (
+        <span className="masthead__right">
+          <span className="masthead__meta">{meta}</span>
+          {/* Reachable from every signed-in page. Without it, anyone who needs
+              to check how their access looks after a change — or to sign in as
+              somebody else — has to clear cookies by hand. */}
+          <form action="/auth/signout" method="post">
+            <button className="masthead__signout" type="submit">
+              sign out
+            </button>
+          </form>
+        </span>
+      ) : null}
     </header>
   );
 }

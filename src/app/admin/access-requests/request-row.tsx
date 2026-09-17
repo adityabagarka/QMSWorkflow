@@ -1,27 +1,27 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { decideAccessRequest, type DecisionResult } from './actions';
+import { decideUserAccess, type DecisionResult } from './actions';
 import { ROLE_LABELS, type Role } from '@/lib/auth/roles';
 
 const ASSIGNABLE_ROLES = Object.keys(ROLE_LABELS) as Role[];
 
 export function RequestRow({
-  requestId,
+  userId,
   name,
   email,
   requestedAt,
   managers,
   canGrantSuperAdmin,
 }: {
-  requestId: string;
+  userId: string;
   name: string;
   email: string;
   requestedAt: string;
   managers: { id: string; name: string; email: string }[];
   canGrantSuperAdmin: boolean;
 }) {
-  const [result, submit] = useFormState<DecisionResult | null, FormData>(decideAccessRequest, null);
+  const [result, submit] = useFormState<DecisionResult, FormData>(decideUserAccess, null);
 
   // §15 reserves Super Admin to Super Admins; an Admin is not offered it.
   const roles = ASSIGNABLE_ROLES.filter((r) => canGrantSuperAdmin || r !== 'super_admin');
@@ -64,7 +64,7 @@ export function RequestRow({
       </td>
       <td colSpan={3}>
         <form action={submit}>
-          <input type="hidden" name="requestId" value={requestId} />
+          <input type="hidden" name="userId" value={userId} />
           <div className="field-row">
             <select name="role" defaultValue="" aria-label={`Role for ${name}`} required>
               <option value="" disabled>

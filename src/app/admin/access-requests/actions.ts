@@ -4,29 +4,34 @@ import { revalidatePath } from 'next/cache';
 import { supabaseServer } from '@/lib/db/server';
 import { ROLES_REQUIRING_MANAGER, type Role } from '@/lib/auth/roles';
 
-export type DecisionResult = { ok: true } | { ok: false; message: string };
+export type DecisionResult = { ok: true } | { ok: false; message: string } | null;
 
 /**
- * Approves or rejects an access request (§15).
+ * Approves or rejects a person's access (§15).
  *
- * The real enforcement lives in app.decide_access_request(): it re-checks the
- * approver's role, refuses an Admin trying to mint a Super Admin, requires a
- * role and manager where §15 does, and writes app_users, access_requests and
- * audit_log in one transaction. The validation here exists to produce a decent
- * error message before a round trip, not to be the control.
+ * Acts on the user, not on a request row. The queue used to be built from
+ * access_requests, which stranded anyone whose request row was missing or
+ * already resolved — they vanished from the screen with no way to act on them.
+ * `app_users.status = 'pending'` is the durable fact.
+ *
+ * Enforcement is in app.decide_user_access(): it re-checks the approver's role,
+ * refuses a self-decision, refuses an Admin granting Super Admin, requires a
+ * manager where §15's span computation needs one, and writes app_users,
+ * access_requests and audit_log in one transaction. The checks here only buy a
+ * better message before the round trip.
  */
-export async function decideAccessRequest(
-  _previous: DecisionResult | null,
+export async function decideUserAccess(
+  _previous: DecisionResult,
   formData: FormData,
 ): Promise<DecisionResult> {
-  const requestId = String(formData.get('requestId') ?? '');
+  const userId = String(formData.get('userId') ?? '');
   const approve = formData.get('intent') === 'approve';
   const role = (formData.get('role') as Role | null) || null;
   const managerId = String(formData.get('managerId') ?? '') || null;
   const note = String(formData.get('note') ?? '') || null;
 
-  if (!requestId) {
-    return { ok: false, message: 'No request was selected.' };
+  if (!userId) {
+    return { ok: false, message: 'No person was selected.' };
   }
 
   if (approve) {
@@ -43,8 +48,8 @@ export async function decideAccessRequest(
   }
 
   const supabase = supabaseServer();
-  const { error } = await supabase.rpc('decide_access_request', {
-    p_request_id: requestId,
+  const { error } = await supabase.rpc('decide_user_access', {
+    p_user_id: userId,
     p_approve: approve,
     p_role: approve ? role : null,
     p_manager_id: approve ? managerId : null,

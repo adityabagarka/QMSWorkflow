@@ -12,7 +12,7 @@
 -- endpoints would hand the §15 model's internals to any signed-in user.
 
 begin;
-select plan(12);
+select plan(16);
 
 -- --------------------------------------------------------------------------
 -- Callable from the application.
@@ -101,6 +101,42 @@ select lives_ok(
     (select id from rpc_ids where who = 'newbie'),
     (select id from rpc_ids where who = 'mgr')),
   'public.decide_access_request approves through the wrapper, with the role as text');
+
+-- --------------------------------------------------------------------------
+-- decide_user_access: the queue acts on a person, so a missing or already
+-- resolved request row cannot strand them (0019).
+-- --------------------------------------------------------------------------
+select has_function('public', 'decide_user_access',
+  array['uuid', 'boolean', 'text', 'uuid', 'text'],
+  'decide_user_access is exposed where supabase.rpc() looks');
+
+reset role;
+insert into rpc_ids (who) values ('stranded');
+insert into app_users (id, email, name, status)
+select id, 'stranded@example.test', 'Stranded', 'pending' from rpc_ids where who = 'stranded';
+
+-- Deliberately NO access_requests row: this is the state that used to make
+-- someone invisible to the approvals screen.
+select is(
+  (select count(*) from access_requests where requested_by = (select id from rpc_ids where who = 'stranded'))::int,
+  0,
+  'the fixture has no request row, which is the state that used to strand a user');
+
+select set_config('app.current_user_id', (select id from rpc_ids where who = 'approver')::text, true);
+set local role authenticated;
+
+select lives_ok(
+  format($q$ select public.decide_user_access(%L, true, 'consultant', %L, null) $q$,
+    (select id from rpc_ids where who = 'stranded'),
+    (select id from rpc_ids where who = 'mgr')),
+  'a pending user with no request row can still be approved');
+
+reset role;
+select results_eq(
+  $$ select role::text, status::text from app_users
+     where id = (select id from rpc_ids where who = 'stranded') $$,
+  $$ select 'consultant', 'active' $$,
+  'the approval took effect on the user, and a request row was written for the record');
 
 select * from finish();
 rollback;
