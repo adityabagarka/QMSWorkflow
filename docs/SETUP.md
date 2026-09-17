@@ -134,13 +134,14 @@ know the system exists. That is what you are registering here.
 4. The first time you sign in, you become the Super Admin automatically, and
    can then approve everyone else from the access requests screen.
 
-   **One thing to decide before then.** The Super Admin is currently set to
-   `aditya@bagarka.in`, which is the address you gave me. That is not a
-   `plumhq.com` address, so I had to add `bagarka.in` to the list of domains
-   allowed to sign in at all. That leaves a second domain permanently admitted.
-   If you would rather it were your `aditya@plumhq.com` address, tell me and I
-   will change it — it is a one-line change, and then only Plum addresses can
-   ever reach the system.
+   Sign in with **`aditya@bagarka.in`** — that is the address set as the first
+   Super Admin. Confirmed as intended, so both `plumhq.com` and `bagarka.in`
+   can reach the sign-in screen. Anyone else signing in just joins the approval
+   queue with no access until you approve them.
+
+   If you ever want to lock it down to Plum addresses only, that is a single row
+   to delete from the `allowed_email_domains` table — no code change. Ask me and
+   I will do it in a minute.
 
 ---
 

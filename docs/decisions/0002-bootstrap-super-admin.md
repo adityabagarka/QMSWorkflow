@@ -32,12 +32,17 @@ be quietly re-armed.
 
 `aditya@bagarka.in`, per the M0 decision.
 
-**This requires attention:** `bagarka.in` is not the Plum Workspace domain, and
-the domain allowlist rejects everything outside it. The address must therefore
-appear in `ALLOWED_EMAIL_DOMAINS` or the bootstrap account can never sign in to
-consume its own grant. `.env.example` currently lists both domains for that
-reason. If the intent was a `plumhq.com` identity, change both the seed in
-`0010_bootstrap_super_admin.sql` and the allowlist, and drop `bagarka.in`.
+`bagarka.in` is not the Plum Workspace domain, so it also appears in
+`allowed_email_domains` — without that the bootstrap account could never sign in
+to consume its own grant. Raised and **confirmed as intended**: `bagarka.in`
+stays allowed.
+
+The consequence to keep in view is that two domains can reach the sign-in
+screen, not one. Anyone with a `bagarka.in` Google account could sign in and
+land in the access-request queue. They would still hold no role and see no
+deals until an approver acted, so this widens who can _ask_ for access, not who
+_has_ it. To close it later, delete the row from `allowed_email_domains` — no
+code change or migration is needed.
 
 ## Consequences
 
