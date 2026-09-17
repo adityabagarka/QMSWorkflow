@@ -40,6 +40,9 @@ npm run dev                    # needs the Supabase and Google values below
 
 ### What deployment still needs
 
+**If you are not an engineer, follow `docs/SETUP.md` instead of this section —
+it is the same thing written as step-by-step instructions.**
+
 The application code is finished but has only been run against local Postgres.
 To stand it up on staging:
 
