@@ -574,7 +574,9 @@ async function main() {
 
     // Direction of change per benefit. Keyed to benefit_catalogue, so it has to
     // follow the workbook rather than ship as its own migration.
-    await client.query(readFileSync(join(process.cwd(), 'supabase', 'seed', 'benefit_polarity.sql'), 'utf8'));
+    await client.query(
+      readFileSync(join(process.cwd(), 'supabase', 'seed', 'benefit_polarity.sql'), 'utf8'),
+    );
 
     const polarity = await client.query<{ classified: string; total: string }>(`
       select
