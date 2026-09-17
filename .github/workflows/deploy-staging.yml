@@ -39,11 +39,11 @@ jobs:
             exit 1
           fi
 
-      - name: Confirm the database is reachable and in the right region
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-          psql "$DATABASE_URL" -tAc "select version();"
-          echo "Connected."
+      # Prints the parsed connection details (never the password) and connects
+      # through the same code path the migrations use. A bad secret fails here,
+      # legibly, rather than as a parser error from inside a library.
+      - name: Confirm the database is reachable
+        run: npm run db:check
 
       - name: Apply migrations
         run: npm run db:migrate

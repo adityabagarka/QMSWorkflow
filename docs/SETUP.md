@@ -216,3 +216,13 @@ Go back to stage 4a and swap it.
 **The deploy job says "password authentication failed".** The password in the
 connection string does not match. If you reset it, rebuild the string with the
 new password and update the GitHub secret.
+
+**Special characters in your password are fine.** Supabase generates passwords
+containing `#`, and `#` has a special meaning in web addresses, which broke the
+very first deploy. That is fixed — the connection string is now read in a way
+that tolerates `#`, `@`, `?` and spaces. You do not need to change or simplify
+your password.
+
+**The first step of the deploy prints your connection details.** That is
+deliberate, so a wrong setting is obvious. It shows the username, host, port and
+database, and only the _length_ of the password — never the password itself.

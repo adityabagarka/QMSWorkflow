@@ -45,6 +45,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
 
+      # Connection-string parsing has its own regression suite: a `#` in a
+      # Supabase-generated password broke the first staging deploy.
+      - run: npm run test:parse
+
       - name: Apply migrations
         run: npm run db:migrate
 
