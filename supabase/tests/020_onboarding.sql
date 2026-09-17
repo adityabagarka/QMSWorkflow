@@ -3,7 +3,7 @@
 -- role and manager assignment.
 
 begin;
-select plan(21);
+select plan(25);
 
 create temporary table t (who text primary key, id uuid default gen_random_uuid());
 insert into t (who) values ('admin'),('super'),('mgr'),('newbie'),('outsider'),('boot');
@@ -141,6 +141,42 @@ select throws_ok(
     gen_random_uuid()),
   '23505', null,
   'A different sign-in identity cannot claim an email that already has an account');
+
+-- --------------------------------------------------------------------------
+-- The lockout fixed in migration 0018.
+--
+-- Provisioning raises an access request, and the bootstrap grant then answers
+-- it. Leaving it pending put the new Super Admin's own request in front of them
+-- on their first screen, where approving it demoted them out of the role the
+-- grant had just given — and, if the chosen role was not an approver, took the
+-- approvals screen with it. One Super Admin, invited to stop being one.
+-- --------------------------------------------------------------------------
+select is(
+  (select count(*) from access_requests
+    where requested_by = tuid('boot') and status = 'pending')::int,
+  0,
+  'Consuming a bootstrap grant leaves no pending request behind');
+
+select is(
+  (select status::text from access_requests where requested_by = tuid('boot')),
+  'approved',
+  'The bootstrap grant is recorded as the decision on that request');
+
+select ok(
+  (select decision_note from access_requests where requested_by = tuid('boot')) like '%bootstrap%',
+  'The note says it was a bootstrap, so it is not mistaken for a real self-approval');
+
+-- Belt and braces: even reachable, a self-decision is refused outright.
+select set_config('app.current_user_id', tuid('boot')::text, true);
+set local role authenticated;
+
+select throws_ok(
+  format($q$ select app.decide_access_request(%L, true, 'consultant', %L, null) $q$,
+    (select id from access_requests where requested_by = tuid('boot')), tuid('mgr')),
+  '42501', null,
+  'Nobody may decide their own access request, whatever their role');
+
+reset role;
 
 select * from finish();
 rollback;

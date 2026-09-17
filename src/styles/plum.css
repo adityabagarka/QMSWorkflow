@@ -133,6 +133,30 @@ a:hover {
   color: var(--fg-muted);
 }
 
+.masthead__right {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+/* A quiet control: needed often enough to be always present, not important
+   enough to compete with anything on the page. */
+.masthead__signout {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.masthead__signout:hover {
+  color: var(--plum-red);
+}
+
 /* An uppercase red eyebrow opens every section. */
 .eyebrow {
   font-size: 12px;

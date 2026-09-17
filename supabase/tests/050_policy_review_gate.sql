@@ -23,6 +23,15 @@ values ('11111111-1111-1111-1111-111111111111', 'Synthetic Rollover Ltd', fxid('
 insert into policies (id, case_id, insurer_name)
 values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'ICICI Lombard');
 
+-- The benefit keys used below, in case this runs before the guardrails workbook
+-- has been imported. On a loaded database these already exist and the insert is
+-- a no-op; the suite must not depend on import order either way.
+insert into benefit_catalogue (benefit_key, display_order, section, benefit_label) values
+  ('members_covered', 1, 'The basics', 'Members Covered'),
+  ('max_age_parents', 8, 'The basics', 'Max age - Parents'),
+  ('room_rent_limit_normal_room', 31, 'Sum insured, limits & copay', 'Room rent limit - Normal room')
+on conflict (benefit_key) do nothing;
+
 -- Three terms across two sections, as an extraction would leave them.
 insert into policy_terms (case_id, policy_id, benefit_key, value, source, extraction_confidence)
 values

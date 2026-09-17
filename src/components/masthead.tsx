@@ -43,7 +43,17 @@ export function Masthead({ meta }: { meta?: string }) {
           onError={() => setLogoFailed(true)}
         />
       )}
-      {meta ? <span className="masthead__meta">{meta}</span> : null}
+      <span className="masthead__right">
+        {meta ? <span className="masthead__meta">{meta}</span> : null}
+        {/* Always reachable. Without it, anyone who needs to check how their
+            access looks after a change — or to sign in as somebody else — has
+            to clear cookies by hand. */}
+        <form action="/auth/signout" method="post">
+          <button className="masthead__signout" type="submit">
+            sign out
+          </button>
+        </form>
+      </span>
     </header>
   );
 }
