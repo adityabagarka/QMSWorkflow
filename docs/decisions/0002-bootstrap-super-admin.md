@@ -37,6 +37,9 @@ be quietly re-armed.
 to consume its own grant. Raised and **confirmed as intended**: `bagarka.in`
 stays allowed.
 
+This also forces the Google consent screen to be External rather than Internal —
+see ADR 0006.
+
 The consequence to keep in view is that two domains can reach the sign-in
 screen, not one. Anyone with a `bagarka.in` Google account could sign in and
 land in the access-request queue. They would still hold no role and see no

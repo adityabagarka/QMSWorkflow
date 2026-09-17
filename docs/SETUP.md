@@ -79,26 +79,46 @@ know the system exists. That is what you are registering here.
 
 3. In the search bar at the top, search for **OAuth consent screen** and open it.
 
-4. Choose **Internal** and click Create.
+4. Choose **External** and click Create.
 
-   Internal means only people with a Plum Workspace account can ever sign in.
-   External would let anyone with any Google account reach the login screen.
-   Choose Internal.
+   Internal would restrict sign-in to the Plum Workspace only, which is
+   tighter — but it would also block `aditya@bagarka.in`, the first Super
+   Admin, since that address is not in the Plum Workspace. Google would reject
+   it before this system ever saw it, and there would be nobody able to approve
+   anyone. External is the deliberate choice here (see
+   `docs/decisions/0006-external-consent-screen.md`).
 
-   **Important, if the first Super Admin is still `aditya@bagarka.in`:**
-   Internal blocks every account outside the Plum Workspace — Google rejects
-   them before they ever reach this system, so a `bagarka.in` address could
-   never complete its first sign-in. Either move the first Super Admin to
-   `aditya@plumhq.com` (recommended, and one line to change), or choose
-   External here. Do not choose Internal and keep a `bagarka.in` Super Admin;
-   that combination cannot sign in at all.
-
-   If Internal is greyed out, your account is not a Workspace administrator —
-   ask whoever manages Google Workspace at Plum to do this stage, or to grant
-   you the access.
+   External means anyone with a Google account can reach the sign-in page. It
+   does not mean they can get in: the database rejects any address outside
+   `allowed_email_domains`, before a user record is created, and that behaviour
+   has four automated checks covering it.
 
 5. Fill in the basics: App name `Rollover Quote Management`, and your email
-   address for both the user support email and the developer contact. Save.
+   address for both the user support email and the developer contact.
+
+   **The app name is what people see when signing in** — "Continue to Rollover
+   Quote Management". Worth getting right; it is the only branding in the login
+   flow.
+
+   Save.
+
+### Publish the app — do not skip this
+
+A newly created External app sits in **Testing** status, which has two limits
+that will bite you:
+
+- only people explicitly added to a "test users" list can sign in, up to 100
+- **sign-ins expire after seven days**, so everyone gets logged out weekly
+
+On the consent screen page (or under **Audience**, depending on which version of
+the console you see), click **Publish app** and confirm.
+
+You will _not_ need Google's verification review. That is only required for apps
+requesting sensitive data such as Gmail or Drive contents. This system asks only
+for name and email address, which Google treats as non-sensitive — so publishing
+takes effect immediately.
+
+### Create the credentials
 
 6. In the search bar, search for **Credentials** and open it.
 
@@ -291,5 +311,7 @@ database, and only the _length_ of the password — never the password itself.
 address does not match exactly — including `https://` and no trailing slash.
 
 **Google refuses the sign-in before the app is even reached.** The consent screen
-is set to Internal and the account is not in the Plum Workspace. See the note in
-stage 2 step 4.
+is set to Internal rather than External. See stage 2 step 4.
+
+**Sign-in works, then stops working about a week later.** The Google app is still
+in Testing status. Publish it — see "Publish the app" in stage 2.
