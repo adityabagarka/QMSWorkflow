@@ -12,7 +12,7 @@
 -- endpoints would hand the §15 model's internals to any signed-in user.
 
 begin;
-select plan(16);
+select plan(17);
 
 -- --------------------------------------------------------------------------
 -- Callable from the application.
@@ -137,6 +137,9 @@ select results_eq(
      where id = (select id from rpc_ids where who = 'stranded') $$,
   $$ select 'consultant', 'active' $$,
   'the approval took effect on the user, and a request row was written for the record');
+
+select has_function('public', 'classify_term_change', array['text', 'text', 'text'],
+  'classify_term_change is exposed where supabase.rpc() looks');
 
 select * from finish();
 rollback;

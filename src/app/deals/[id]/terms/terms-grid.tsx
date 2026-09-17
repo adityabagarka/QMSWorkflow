@@ -2,26 +2,46 @@
 
 import { useState } from 'react';
 
+export type ChangeKind = 'enhancement' | 'restriction' | 'changed';
+
+export type OptionCell = {
+  /** Always the full term, never a reference back to the expiring column. */
+  value: string | null;
+  changed: boolean;
+  kind: ChangeKind | null;
+};
+
 export type TermRow = {
   benefitKey: string;
   section: string;
   label: string;
   expiring: string | null;
   reviewed: boolean;
-  /** Value per option id, present only where the option changes it. */
-  overrides: Record<string, string>;
+  cells: Record<string, OptionCell>;
 };
 
 export type OptionColumn = { id: string; optionNo: number; name: string };
 
+const MARK: Record<ChangeKind, string> = {
+  enhancement: '↑ enhancement',
+  restriction: '↓ restriction',
+  changed: '• changed',
+};
+
 /**
  * The terms table.
  *
- * One CSS grid for the whole thing rather than a grid per section, so a value
- * always sits under its own heading whatever is open or closed. Misalignment
- * here would mean reading an option's term against the wrong column, which is
- * the most expensive misreading this screen can produce — an insurer quoting
- * the wrong cover.
+ * Two things here are load-bearing.
+ *
+ * One CSS grid for the whole table rather than a grid per section, so a value
+ * always sits under its own heading whatever is open or closed. Reading an
+ * option's term against the wrong column means an insurer quoting the wrong
+ * cover.
+ *
+ * Every option shows the FULL term, including where it matches the expiring
+ * policy. "Same as expiring" is fine on screen and useless everywhere else:
+ * this table is exported to Excel, and an insurer issuing a policy from it
+ * needs the words, not a cross-reference.
  */
 export function TermsGrid({
   rows,
@@ -44,88 +64,103 @@ export function TermsGrid({
     });
   }
 
-  // Benefit label, expiring, then one column per option.
-  const template = `minmax(190px, 1.3fr) minmax(150px, 1.4fr) ${options
-    .map(() => 'minmax(150px, 1.4fr)')
+  const template = `minmax(190px, 1.2fr) minmax(160px, 1.3fr) ${options
+    .map(() => 'minmax(160px, 1.3fr)')
     .join(' ')}`;
 
   return (
-    <div className="terms">
-      <div className="terms__grid" style={{ gridTemplateColumns: template }}>
-        <div className="terms__head">
-          <div>Benefit</div>
-          <div>Expiring</div>
-          {options.map((o) => (
-            <div key={o.id}>
-              Option {o.optionNo}
-              <span className="opt-name">{o.name}</span>
-              {onRename ? (
-                <button className="terms__rename" type="button" onClick={() => onRename(o.id)}>
-                  rename
+    <>
+      <p className="terms__key">
+        <span>
+          <i className="k-enh" />
+          Enhancement — more cover, expect it to cost
+        </span>
+        <span>
+          <i className="k-res" />
+          Restriction — less cover, ask for a discount
+        </span>
+        <span>
+          <i className="k-chg" />
+          Changed — direction is a judgement call
+        </span>
+      </p>
+
+      <div className="terms">
+        <div className="terms__grid" style={{ gridTemplateColumns: template }}>
+          <div className="terms__head">
+            <div>Benefit</div>
+            <div>Expiring</div>
+            {options.map((o) => (
+              <div key={o.id}>
+                Option {o.optionNo}
+                <span className="opt-name">{o.name}</span>
+                {onRename ? (
+                  <button className="terms__rename" type="button" onClick={() => onRename(o.id)}>
+                    rename
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          {sections.map((section) => {
+            const sectionRows = rows.filter((r) => r.section === section);
+            const changed = sectionRows.filter((r) =>
+              options.some((o) => r.cells[o.id]?.changed),
+            ).length;
+            const unconfirmed = sectionRows.filter((r) => !r.reviewed).length;
+            const isClosed = closed.has(section);
+
+            return (
+              <div key={section} style={{ display: 'contents' }}>
+                <button
+                  className="terms__section"
+                  type="button"
+                  onClick={() => toggle(section)}
+                  aria-expanded={!isClosed}
+                >
+                  <span className="terms__caret">{isClosed ? '▸' : '▾'}</span>
+                  <span className="terms__section-name">{section}</span>
+                  <span className="terms__section-count">
+                    {sectionRows.length} benefits
+                    {changed > 0 ? ` · ${changed} changed` : ''}
+                    {unconfirmed > 0 ? ` · ${unconfirmed} to confirm` : ''}
+                  </span>
                 </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
 
-        {sections.map((section) => {
-          const sectionRows = rows.filter((r) => r.section === section);
-          const changed = sectionRows.filter((r) =>
-            options.some((o) => r.overrides[o.id] !== undefined),
-          ).length;
-          const unconfirmed = sectionRows.filter((r) => !r.reviewed).length;
-          const isClosed = closed.has(section);
+                {isClosed
+                  ? null
+                  : sectionRows.map((row) => (
+                      <div key={row.benefitKey} style={{ display: 'contents' }}>
+                        <div className="terms__cell terms__cell--label">{row.label}</div>
+                        <div className="terms__cell">
+                          {row.expiring ?? <span className="terms__unset">not confirmed</span>}
+                        </div>
+                        {options.map((o) => {
+                          const cell = row.cells[o.id];
+                          const kind = cell?.kind ?? 'changed';
+                          const className = !cell?.changed
+                            ? 'terms__cell'
+                            : `terms__cell terms__cell--${kind}`;
 
-          return (
-            <div key={section} style={{ display: 'contents' }}>
-              <button
-                className="terms__section"
-                type="button"
-                onClick={() => toggle(section)}
-                aria-expanded={!isClosed}
-              >
-                <span className="terms__caret">{isClosed ? '▸' : '▾'}</span>
-                <span className="terms__section-name">{section}</span>
-                <span className="terms__section-count">
-                  {sectionRows.length} benefits
-                  {changed > 0 ? ` · ${changed} changed` : ''}
-                  {unconfirmed > 0 ? ` · ${unconfirmed} to confirm` : ''}
-                </span>
-              </button>
-
-              {isClosed
-                ? null
-                : sectionRows.map((row) => (
-                    <div key={row.benefitKey} style={{ display: 'contents' }}>
-                      <div className="terms__cell terms__cell--label">{row.label}</div>
-                      <div className="terms__cell">
-                        {row.expiring ?? <span className="terms__unset">not confirmed</span>}
+                          return (
+                            <div key={o.id} className={className}>
+                              {cell?.value ?? <span className="terms__unset">not confirmed</span>}
+                              {cell?.changed ? (
+                                <span className={`terms__mark terms__mark--${kind}`}>
+                                  {MARK[kind]}
+                                </span>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
-                      {options.map((o) => {
-                        const override = row.overrides[o.id];
-                        return (
-                          <div
-                            key={o.id}
-                            className={
-                              override !== undefined
-                                ? 'terms__cell terms__cell--changed'
-                                : 'terms__cell'
-                            }
-                          >
-                            {override !== undefined ? (
-                              override
-                            ) : (
-                              <span className="terms__same">same as expiring</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-            </div>
-          );
-        })}
+                    ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

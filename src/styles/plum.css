@@ -33,6 +33,20 @@
   --line-lavender: #c7b1c0;
   --line-lavender-2: #ddcbd6;
 
+  /*
+   * Change direction. A deliberate widening of the palette: the design system
+   * gives plum-red all the emphasis work, but enhancement and restriction move
+   * price in opposite directions, and one colour cannot say which way. The
+   * green is muted and warm so it sits on cream rather than shouting off it.
+   *
+   * Colour never carries the meaning alone — every marked cell also has an
+   * arrow and a text label, for anyone who cannot distinguish the two and for
+   * the Excel export, where the fill may not survive.
+   */
+  --gain-fill: #e8f0e4;
+  --gain-ink: #2f5d3a;
+  --gain-line: #8fb193;
+
   /* Severity / intensity, low to high */
   --sev-blush: #ffe7ea;
   --sev-pink: #ffd9dc;
@@ -877,10 +891,77 @@ input[type='text'] {
   color: var(--fg-2);
 }
 
-/* A changed cell is marked by fill alone. The red rule was doing the same job
-   twice and made the grid look busier than the information warrants. */
+/*
+ * A changed cell is marked by fill, with the direction of the change carried by
+ * colour AND an arrow AND a label — never colour alone.
+ */
 .terms__cell--changed {
+  background: var(--cream-warm);
+}
+
+.terms__cell--enhancement {
+  background: var(--gain-fill);
+  box-shadow: inset 0 -1px 0 var(--gain-line);
+}
+
+.terms__cell--restriction {
   background: var(--sev-blush);
+  box-shadow: inset 0 -1px 0 var(--sev-coral);
+}
+
+.terms__mark {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+}
+
+.terms__mark--enhancement {
+  color: var(--gain-ink);
+}
+
+.terms__mark--restriction {
+  color: var(--plum-red-deep);
+}
+
+.terms__mark--changed {
+  color: var(--fg-muted);
+}
+
+/* A key, because two new colours need saying once rather than guessing. */
+.terms__key {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  color: var(--fg-2);
+  margin: 0 0 14px;
+}
+
+.terms__key i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.terms__key .k-enh {
+  background: var(--gain-fill);
+  border: 1px solid var(--gain-line);
+}
+
+.terms__key .k-res {
+  background: var(--sev-blush);
+  border: 1px solid var(--sev-coral);
+}
+
+.terms__key .k-chg {
+  background: var(--cream-warm);
+  border: 1px solid var(--line-lavender);
 }
 
 .terms__same {

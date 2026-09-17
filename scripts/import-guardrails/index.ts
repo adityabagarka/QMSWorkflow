@@ -15,6 +15,7 @@
  *    without failing anything.
  */
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import ExcelJS from 'exceljs';
 import type { Client } from 'pg';
 import { withClient } from '../db';
@@ -570,6 +571,20 @@ async function main() {
       throw new Error(`${orphans.rows[0]?.n} SKUs have no coverage rows.`);
     }
     console.log('\nEvery SKU has a full coverage row set.');
+
+    // Direction of change per benefit. Keyed to benefit_catalogue, so it has to
+    // follow the workbook rather than ship as its own migration.
+    await client.query(readFileSync(join(process.cwd(), 'supabase', 'seed', 'benefit_polarity.sql'), 'utf8'));
+
+    const polarity = await client.query<{ classified: string; total: string }>(`
+      select
+        count(*) filter (where polarity <> 'none')::text as classified,
+        count(*)::text as total
+      from benefit_polarity
+    `);
+    console.log(
+      `Change direction set for ${polarity.rows[0]?.classified} of ${polarity.rows[0]?.total} benefits.`,
+    );
   });
 }
 
