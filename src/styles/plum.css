@@ -507,62 +507,6 @@ input[type='text'] {
   color: var(--fg-muted);
 }
 
-/* Stage checklist — the deal's home. Progress is legible without moving. */
-.stages {
-  margin-top: 30px;
-  border: 1px solid var(--line-lavender);
-}
-
-.stage {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 15px 20px;
-  border-bottom: 0.5px solid var(--line-lavender-2);
-  background: var(--cream-deep);
-}
-
-.stage:last-child {
-  border-bottom: 0;
-}
-
-.stage__num {
-  font-family: var(--font-display);
-  font-size: 17px;
-  color: var(--fg-muted);
-  width: 18px;
-  flex: 0 0 18px;
-}
-
-.stage__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.stage__title {
-  font-size: 15px;
-}
-
-.stage__state {
-  font-size: 12.5px;
-  color: var(--fg-muted);
-  margin-top: 2px;
-}
-
-.stage--done .stage__num {
-  color: var(--plum-red);
-}
-
-.stage--now {
-  background: var(--sev-blush);
-  box-shadow: inset 3px 0 0 var(--plum-red);
-}
-
-.stage--todo .stage__title,
-.stage--todo .stage__num {
-  color: var(--fg-muted);
-}
-
 .bar {
   height: 3px;
   width: 140px;
@@ -624,6 +568,134 @@ input[type='text'] {
   background: var(--sev-blush);
   color: var(--fg-1);
   box-shadow: inset 0 -3px 0 var(--plum-red);
+}
+
+/*
+ * Two columns on every step: the work on the left with room to breathe, and
+ * reference material on the right. Narrower on the right because it is there to
+ * be glanced at — documents and activity on most steps, the policy itself on
+ * the terms step, where checking a clause should not mean leaving the screen.
+ */
+.step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 48px;
+  padding-top: 32px;
+  align-items: start;
+}
+
+.step--full {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.step__main {
+  min-width: 0;
+}
+
+.step__main h2 {
+  font-size: clamp(22px, 2.6vw, 27px);
+  letter-spacing: -0.03em;
+}
+
+.step__aside {
+  min-width: 0;
+  position: sticky;
+  top: 20px;
+}
+
+.step__aside h3 {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  margin: 0 0 12px;
+}
+
+.step__aside + .step__aside,
+.aside-block + .aside-block {
+  margin-top: 30px;
+}
+
+.wiz__locked {
+  flex: 1 1 120px;
+  padding: 12px 16px;
+  border-right: 0.5px solid var(--line-lavender-2);
+  color: var(--line-lavender);
+}
+
+.wiz__locked:last-child {
+  border-right: 0;
+}
+
+/* Document list in the aside. */
+.doc {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.doc__meta {
+  color: var(--fg-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.drop {
+  border: 1px dashed var(--line-lavender);
+  background: var(--cream-deep);
+  padding: 26px 20px;
+  text-align: center;
+}
+
+.drop__big {
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+/* The policy, beside the terms it describes. */
+.pdf-panel {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  height: 620px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-panel__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-lavender);
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.pdf-panel__frame {
+  flex: 1;
+  border: 0;
+  width: 100%;
+  background: var(--cream);
+}
+
+.pdf-panel__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--fg-muted);
+  font-size: 13px;
 }
 
 .step-nav {
@@ -856,6 +928,17 @@ input[type='text'] {
   flex-wrap: wrap;
 }
 
+@media (max-width: 1024px) {
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+
+  .step__aside {
+    position: static;
+  }
+}
+
 @media (max-width: 640px) {
   .deal-hero {
     flex-direction: column;
@@ -869,4 +952,36 @@ input[type='text'] {
   .stage {
     flex-wrap: wrap;
   }
+}
+
+/* Read-only detail pairs within a wizard step. */
+.detail-list {
+  margin: 0;
+}
+
+.detail-list > div {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) 1fr;
+  gap: 24px;
+  padding: 13px 0;
+  border-bottom: 0.5px solid var(--line-lavender-2);
+}
+
+.detail-list > div:last-child {
+  border-bottom: 0;
+}
+
+.detail-list dt {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  padding-top: 3px;
+}
+
+.detail-list dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--fg-1);
 }

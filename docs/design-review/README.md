@@ -9,10 +9,19 @@ with representative content, not a second implementation to keep in step.
 
 ## Decisions this review settled
 
-**The deal page is a hybrid.** A checklist of the six stages is the deal's home,
-because a rollover is picked up and put down over weeks and progress has to be
-legible at rest. Step navigation with back/next lives inside a stage, where the
-work is sequential.
+**The deal page is a wizard.** Six steps across the top, each a link, plus
+back/next at the foot of the step. Returning to review or edit an earlier step
+is a click on its number rather than a retraced path, so the step bar does the
+job the checklist would have done. Steps the deal has not reached yet are inert.
+
+**Every step has the same two columns:** the work on the left with room to
+breathe, reference material on the right in a narrower column. Documents and
+activity on most steps; on the terms step, the policy itself — checking a clause
+should not mean leaving the screen and coming back.
+
+One `DealShell` component renders the header, the step bar and both columns, so
+the steps cannot drift apart. A wizard whose chrome moves between steps is just
+a set of pages.
 
 **Cover start, not expiry.** The date a deal turns on is the inception of the
 policy being quoted. Screens lead with it and count down to it.

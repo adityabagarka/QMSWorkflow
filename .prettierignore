@@ -6,3 +6,4 @@ data/
 CLAUDE.md
 ARCHITECTURE.md
 docs/plum-design.md
+docs/design-review/*.html

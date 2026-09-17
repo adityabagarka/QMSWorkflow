@@ -1,30 +1,22 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireActiveSession } from '@/lib/auth/session';
 import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
-import { STAGES, stageHref } from '@/lib/cases/phases';
+import { DealShell } from '@/components/deal-shell';
+import { loadDealHeader } from '@/lib/cases/deal-header';
+import { stageHref } from '@/lib/cases/phases';
 import { TermsGrid, type OptionColumn, type TermRow } from './terms-grid';
+import { PolicyPanel } from './policy-panel';
 
 export default async function TermsPage({ params }: { params: { id: string } }) {
   const session = await requireActiveSession();
+  const loaded = await loadDealHeader(params.id);
+  if (!loaded) notFound();
+
+  const { header, currentPhase, policyId } = loaded;
   const supabase = supabaseServer();
 
-  const { data: deal } = await supabase
-    .from('cases')
-    .select('id, customer_name, current_phase, policies(id)')
-    .eq('id', params.id)
-    .maybeSingle<{
-      id: string;
-      customer_name: string;
-      current_phase: number;
-      policies: { id: string }[];
-    }>();
-
-  if (!deal) notFound();
-  const policyId = deal.policies?.[0]?.id ?? null;
-
-  const [catalogue, terms, options, overrides] = await Promise.all([
+  const [catalogue, terms, options, overrides, docs] = await Promise.all([
     supabase
       .from('benefit_catalogue')
       .select('benefit_key, section, benefit_label, display_order')
@@ -44,14 +36,21 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
     supabase
       .from('rfq_options')
       .select('id, option_no, name')
-      .eq('case_id', deal.id)
+      .eq('case_id', header.id)
       .order('option_no')
       .returns<{ id: string; option_no: number; name: string }[]>(),
     supabase
       .from('rfq_option_terms')
       .select('option_id, benefit_key, value')
-      .eq('case_id', deal.id)
+      .eq('case_id', header.id)
       .returns<{ option_id: string; benefit_key: string; value: string }[]>(),
+    supabase
+      .from('policy_documents')
+      .select('id, file_ref, doc_type')
+      .eq('case_id', header.id)
+      .order('uploaded_at', { ascending: false })
+      .limit(1)
+      .returns<{ id: string; file_ref: string; doc_type: string }[]>(),
   ]);
 
   const termByKey = new Map((terms.data ?? []).map((t) => [t.benefit_key, t]));
@@ -82,57 +81,44 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
 
   const confirmed = rows.filter((r) => r.reviewed).length;
   const outstanding = rows.length - confirmed;
+  const policyDoc = docs.data?.[0] ?? null;
 
   return (
     <main className="shell">
       <Masthead meta={session.email} />
 
-      <div className="crumb">
-        <Link href={`/deals/${deal.id}`}>← {deal.customer_name}</Link>
-      </div>
-
-      <nav className="wiz">
-        {STAGES.map((stage) => (
-          <Link
-            key={stage.phase}
-            href={stageHref(deal.id, stage.phase)}
-            className={stage.phase === 4 ? 'is-now' : stage.phase < 4 ? 'is-done' : undefined}
-          >
-            <span className="wiz__n">{stage.phase + 1}</span>
-            <span className="wiz__t">{stage.label}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <section className="section">
-        <div className="section__head">
-          <h1>Terms</h1>
-          <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>
-            {confirmed} of {rows.length} confirmed
-          </span>
-        </div>
-
+      <DealShell
+        deal={header}
+        currentPhase={4}
+        maxReachedPhase={Math.max(currentPhase, 4)}
+        title="Terms and options"
+        back={stageHref(header.id, 3)}
+        next={stageHref(header.id, 5)}
+        nextLabel="build the RFQ"
+        nextDisabled={outstanding > 0}
+        nextNote={
+          outstanding > 0
+            ? `${outstanding} of ${rows.length} still to confirm`
+            : `All ${rows.length} confirmed`
+        }
+        aside={
+          <div className="aside-block">
+            <h3>Expiring policy</h3>
+            {/* The policy sits beside the terms it describes, so checking a
+                clause is a glance rather than a trip to the documents screen
+                and back. */}
+            <PolicyPanel caseId={header.id} fileRef={policyDoc?.file_ref ?? null} />
+          </div>
+        }
+      >
         {optionColumns.length === 0 ? (
           <p className="empty">
             No options yet. Option 1 is the expiring terms unchanged; add more to vary them.
           </p>
         ) : (
-          <div style={{ marginTop: 24 }}>
-            <TermsGrid rows={rows} options={optionColumns} />
-          </div>
+          <TermsGrid rows={rows} options={optionColumns} />
         )}
-
-        <div className="terms__foot">
-          <span style={{ fontSize: 13, color: 'var(--fg-2)' }}>
-            {outstanding > 0
-              ? `${outstanding} benefits still to confirm before this can go to insurers.`
-              : 'Every benefit is confirmed.'}
-          </span>
-          <button className="button" type="button" disabled={outstanding > 0}>
-            send to insurers
-          </button>
-        </div>
-      </section>
+      </DealShell>
     </main>
   );
 }

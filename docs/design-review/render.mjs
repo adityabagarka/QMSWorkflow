@@ -4,7 +4,10 @@ const files = process.argv.slice(2);
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+const page = await browser.newPage({
+  viewport: { width: 1280, height: 900 },
+  deviceScaleFactor: 2,
+});
 for (const f of files) {
   await page.goto(`file://${process.cwd()}/${f}`);
   await page.waitForTimeout(250);
