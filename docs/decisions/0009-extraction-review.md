@@ -55,9 +55,18 @@ considerably more annoying for a careless one, which is the intended asymmetry.
 
 ## 5. The gate is structural
 
-RFQ dispatch is blocked while any term is still `proposed`. Not a warning, not a
-nudge — the action is unavailable, and the screen says which sections are
-outstanding.
+RFQ dispatch is blocked until **every** benefit in the catalogue has been
+decided. Not a warning, not a nudge — the action is unavailable, and the screen
+says which sections are outstanding.
+
+Completeness is coverage, not absence of objection. The first version of this
+gate asked "is any existing term still proposed?", which is vacuously false when
+nothing has been entered — so a policy with no terms at all reported itself
+ready. A gate that opens on precisely the case it exists to catch is worse than
+no gate, because it is trusted. Fixed in migration 0020 and asserted since.
+
+A benefit the policy does not mention is still a decision. "Not covered" is an
+answer, and it is one the insurer needs.
 
 §7 already establishes that dispatch cannot skip the compliance review gate.
 This is the same principle one step earlier.

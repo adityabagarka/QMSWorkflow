@@ -6,7 +6,7 @@
 -- an insurer is quoted terms nobody read.
 
 begin;
-select plan(11);
+select plan(15);
 
 create temporary table fx (who text primary key, id uuid default gen_random_uuid());
 insert into fx (who) values ('rm');
@@ -43,6 +43,34 @@ values
    'room_rent_limit_normal_room', 'Single private AC room', 'extracted', 0.67);
 
 -- --------------------------------------------------------------------------
+-- A blank policy is not complete.
+--
+-- The gate originally asked "is anything marked proposed?", which is vacuously
+-- false when nothing has been entered — so a policy with no terms at all
+-- reported itself ready for RFQ. A gate that opens on the very case it exists
+-- to catch is worse than none, because it is trusted.
+-- --------------------------------------------------------------------------
+-- Its own case: policies.case_id is unique, since a rollover has exactly one
+-- expiring policy.
+insert into cases (id, customer_name, owner_user_id)
+values ('44444444-4444-4444-4444-444444444444', 'Blank Synthetic Ltd', fxid('rm'));
+insert into policies (id, case_id)
+values ('33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444');
+
+select ok(
+  not app.policy_review_complete('33333333-3333-3333-3333-333333333333'),
+  'A policy with no terms entered at all is NOT ready for RFQ');
+
+select is(
+  (select decided from app.policy_review_progress('33333333-3333-3333-3333-333333333333'))::int,
+  0,
+  'A blank policy has decided nothing');
+
+select ok(
+  (select total from app.policy_review_progress('33333333-3333-3333-3333-333333333333')) > 0,
+  'Progress is measured against the whole benefit catalogue, not against rows that happen to exist');
+
+-- --------------------------------------------------------------------------
 -- Nothing arrives pre-approved (ADR 0009 §1).
 -- --------------------------------------------------------------------------
 select is(
@@ -53,10 +81,14 @@ select ok(
   not app.policy_review_complete('22222222-2222-2222-2222-222222222222'),
   'A policy with unreviewed terms is not ready for RFQ');
 
+-- Every section is outstanding here, because only three of the catalogue's
+-- benefits have been entered at all. Before 0020 this reported only the two
+-- sections that happened to contain a row, which flattered the state of the
+-- policy considerably.
 select is(
   (select count(*) from app.policy_review_outstanding('22222222-2222-2222-2222-222222222222'))::int,
-  2,
-  'Outstanding work is reported per section, so the screen can name what is left');
+  (select count(distinct section) from benefit_catalogue)::int,
+  'Outstanding work is reported per section, counting benefits never entered as well as unreviewed ones');
 
 -- --------------------------------------------------------------------------
 -- A review must be attributable (ADR 0009, "What gets recorded").
@@ -106,9 +138,26 @@ select lives_ok(
              where benefit_key = 'room_rent_limit_normal_room' $q$, fxid('rm')),
   'The last outstanding term is reviewed');
 
+-- Three terms reviewed is still not the whole catalogue, so the gate holds.
+select ok(
+  not app.policy_review_complete('22222222-2222-2222-2222-222222222222'),
+  'Reviewing the terms that exist is not enough — every benefit must be decided');
+
+-- Decide the rest. A benefit the policy does not mention is still a decision:
+-- "not covered" is an answer, and the insurer needs it.
+insert into policy_terms (case_id, policy_id, benefit_key, value, source, review_status, reviewed_by, reviewed_at)
+select '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222',
+       b.benefit_key, 'Not covered', 'manual', 'confirmed', fxid('rm'), now()
+from benefit_catalogue b
+where not exists (
+  select 1 from policy_terms t
+  where t.policy_id = '22222222-2222-2222-2222-222222222222'
+    and t.benefit_key = b.benefit_key
+);
+
 select ok(
   app.policy_review_complete('22222222-2222-2222-2222-222222222222'),
-  'With every term reviewed, the policy is ready for RFQ');
+  'With every benefit decided, the policy is ready for RFQ');
 
 select * from finish();
 rollback;
