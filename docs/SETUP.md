@@ -3,11 +3,12 @@
 A step-by-step guide, written for someone who does not write code. You will not
 need to write any. Everything here is filling in web forms and copying values.
 
-There are three stages. Budget about 45 minutes in total.
+There are four stages. Budget about an hour in total.
 
 1. Create the database (Supabase) — about 10 minutes
 2. Create the Google sign-in credentials — about 20 minutes
-3. Hand the values over so the system can be switched on — about 5 minutes
+3. Connect the two together — about 5 minutes
+4. Build the database by pressing a button on GitHub — about 15 minutes
 
 A note on why this part is yours rather than mine: these accounts are tied to
 Plum's identity and billing, and the Google credentials control who can log in
@@ -97,10 +98,10 @@ know the system exists. That is what you are registering here.
    - **Name:** `QMS Staging`
    - Under **Authorised redirect URIs**, click Add URI and paste:
 
-     `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`
+     `https://exfiksdvnctzxkwswwgk.supabase.co/auth/v1/callback`
 
-     Replace `YOUR-PROJECT-REF` with the bit from your Supabase Project URL —
-     if your URL is `https://abcdefgh.supabase.co`, the reference is `abcdefgh`.
+     That is already filled in for your project — copy it exactly as written,
+     including the `/auth/v1/callback` on the end.
 
      This is the single most common thing to get wrong. If it does not match
      exactly, sign-in fails with a "redirect URI mismatch" error. If that
@@ -123,27 +124,75 @@ know the system exists. That is what you are registering here.
    requires credentials to live in a secrets manager rather than anywhere in the
    repository.
 
-3. Send me the **Project URL**, the **anon key** and the **connection string**.
-   I will then:
-   - build the database structure (about 40 tables) in your new Supabase project
-   - load the guardrails workbook into it — roughly 1,400 plans and their pricing
-   - run the 67 automated checks that prove each of the six roles can see
-     exactly the deals they are supposed to and nothing else
-   - report back what passed
-
-4. The first time you sign in, you become the Super Admin automatically, and
-   can then approve everyone else from the access requests screen.
-
-   Sign in with **`aditya@bagarka.in`** — that is the address set as the first
-   Super Admin. Confirmed as intended, so both `plumhq.com` and `bagarka.in`
-   can reach the sign-in screen. Anyone else signing in just joins the approval
-   queue with no access until you approve them.
-
-   If you ever want to lock it down to Plum addresses only, that is a single row
-   to delete from the `allowed_email_domains` table — no code change. Ask me and
-   I will do it in a minute.
-
 ---
+
+## Stage 4 — Build the database
+
+**Read this first: I cannot do this step for you.** The environment I run in
+blocks all network access to Supabase — both the database and the website. That
+is a restriction on my sandbox, not a problem with your project. So the build
+has to run somewhere with normal internet access.
+
+The easiest such place is **GitHub Actions**: a free service, built into the
+repository you already have, that runs commands on a machine in the cloud. You
+click a button; it does the work. No software to install on your laptop.
+
+### 4a. Get the right connection string
+
+In Supabase, go to **Project Settings** → **Database** → **Connection string**.
+
+There are several tabs. You want **Session pooler** — _not_ Direct connection.
+
+Direct connection only works over IPv6, which most machines (including GitHub's)
+cannot use. It will simply hang with no useful error. Session pooler works
+everywhere. This is the single most common thing to get stuck on.
+
+Copy that string. Replace `[YOUR-PASSWORD]` with your database password.
+
+**If you have already sent your password to me in a chat message, reset it
+first:** Project Settings → Database → **Reset database password**. Anything
+pasted into a conversation should be treated as no longer private. Generate a
+new one, save it in your password manager, and use that in the string below.
+Nothing is broken by resetting it.
+
+### 4b. Store it in GitHub
+
+1. Go to your repository on GitHub: **github.com/adityabagarka/QMSWorkflow**
+2. **Settings** → in the left sidebar, **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `DATABASE_URL` — exactly that, capitals and underscore
+5. Secret: paste the session pooler string from 4a
+6. Click **Add secret**
+
+GitHub encrypts this. Nobody, including me, can read it back out — it is only
+decrypted inside a running job. This is why it goes here rather than into a
+message.
+
+### 4c. Press the button
+
+1. On the repository, click the **Actions** tab
+2. In the left sidebar, choose **Deploy to Supabase staging**
+3. Click **Run workflow**, leave "Also import the guardrails workbook" ticked,
+   and click the green **Run workflow** button
+4. Wait two or three minutes, then click into the run to watch it
+
+It will:
+
+- create about 40 tables
+- run 67 automated checks proving each of the six roles can see exactly the
+  deals they should and nothing else
+- load roughly 1,400 plans and their pricing from the guardrails workbook
+
+A green tick means all three worked. A red cross means something failed — open
+the run, copy what it says, and send it to me. I will fix it and you press the
+button again.
+
+### 4d. Sign in
+
+Once it is green, sign in with **`aditya@bagarka.in`** — that address is set as
+the first Super Admin, so you become one automatically. Everyone else who signs
+in lands in the approval queue with no access until you approve them and give
+them a role and a manager.
 
 ## Things that commonly go wrong
 
@@ -159,3 +208,11 @@ Reset database password. Then rebuild the connection string with the new one.
 **The free Supabase project gets paused.** Free projects pause after a week of
 no activity. Opening the dashboard and clicking Restore brings it back with all
 data intact. Worth upgrading to Pro once people are using it daily.
+
+**The deploy job hangs on "Confirm the database is reachable".** You almost
+certainly used the Direct connection string rather than the Session pooler one.
+Go back to stage 4a and swap it.
+
+**The deploy job says "password authentication failed".** The password in the
+connection string does not match. If you reset it, rebuild the string with the
+new password and update the GitHub secret.

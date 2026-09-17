@@ -1,0 +1,70 @@
+name: Deploy to Supabase staging
+
+# Run by hand from the Actions tab. Not automatic on push: this writes to a real
+# database, so it should be a deliberate act.
+on:
+  workflow_dispatch:
+    inputs:
+      import_guardrails:
+        description: 'Also import the guardrails workbook'
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    name: Migrate, verify and seed
+    runs-on: ubuntu-latest
+    environment: staging
+
+    env:
+      # Set in GitHub under Settings -> Secrets and variables -> Actions.
+      # Use the SESSION POOLER connection string from the Supabase dashboard:
+      # the direct db.<ref>.supabase.co host is IPv6-only and GitHub's runners
+      # are IPv4, so a direct string will simply time out here.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check the connection string is present
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set. Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
+      - name: Confirm the database is reachable and in the right region
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          psql "$DATABASE_URL" -tAc "select version();"
+          echo "Connected."
+
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      # §15 requires the database itself to enforce who can see which deals.
+      # Proving that on the real instance matters more than proving it locally,
+      # because this is where the policies actually have to hold.
+      - name: Prove the role/span model on the real database
+        run: npm run db:test
+
+      - name: Import the guardrails workbook
+        if: ${{ inputs.import_guardrails }}
+        run: npm run db:import-guardrails
+
+      - name: Summarise
+        if: always()
+        run: |
+          echo "### Staging deploy" >> $GITHUB_STEP_SUMMARY
+          psql "$DATABASE_URL" -tAc "select count(*) from information_schema.tables where table_schema='public'" \
+            | xargs -I{} echo "- Tables: {}" >> $GITHUB_STEP_SUMMARY
+          psql "$DATABASE_URL" -tAc "select count(*) from pg_policies where schemaname='public'" \
+            | xargs -I{} echo "- RLS policies: {}" >> $GITHUB_STEP_SUMMARY
+          psql "$DATABASE_URL" -tAc "select coalesce(count(*),0) from sku_pricing" 2>/dev/null \
+            | xargs -I{} echo "- Plans loaded: {}" >> $GITHUB_STEP_SUMMARY || true
