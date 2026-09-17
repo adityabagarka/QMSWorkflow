@@ -1,0 +1,68 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css">
+<style>
+  .crumb { padding:22px 0 0; font-size:13px; } .crumb a { color:var(--fg-muted); }
+  .hero { display:flex; align-items:flex-start; justify-content:space-between; gap:40px; padding:14px 0 20px; }
+  h1 { font-size:36px; letter-spacing:-.04em; line-height:1.05; }
+  .hero .sub { font-size:13.5px; margin-top:7px; }
+  .startbox { text-align:right; }
+  .startbox .lbl { font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--fg-muted); }
+  .startbox .date { font-family:var(--font-display); font-size:27px; letter-spacing:-.02em; margin-top:2px; }
+  /* Facts inline under the name, so nothing is buried in a definition list */
+  .facts { display:flex; gap:0; border-top:1px solid var(--line-lavender); border-bottom:1px solid var(--line-lavender); }
+  .fact { flex:1; padding:14px 18px 13px; border-right:.5px solid var(--line-lavender-2); }
+  .fact:last-child { border-right:0; }
+  .fact .l { font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-muted); }
+  .fact .v { font-family:var(--font-display); font-size:20px; margin-top:3px; letter-spacing:-.02em; }
+  .fact .n { font-size:11.5px; color:var(--fg-muted); }
+  /* Checklist of stages, each a row you can open — progress is legible at rest */
+  .stages { margin:30px 0 0; border:1px solid var(--line-lavender); }
+  .stage { display:flex; align-items:center; gap:18px; padding:16px 20px; border-bottom:.5px solid var(--line-lavender-2); background:var(--cream-deep); }
+  .stage:last-child { border-bottom:0; }
+  .stage .num { font-family:var(--font-display); font-size:17px; color:var(--fg-muted); width:18px; }
+  .stage .txt { flex:1; }
+  .stage .ttl { font-size:15px; }
+  .stage .st { font-size:12.5px; color:var(--fg-muted); margin-top:2px; }
+  .stage.done .num { color:var(--plum-red); }
+  .stage.now { background:var(--sev-blush); box-shadow:inset 3px 0 0 var(--plum-red); }
+  .stage.todo .ttl, .stage.todo .num { color:var(--fg-muted); }
+  .bar { height:3px; background:var(--line-lavender-2); width:120px; }
+  .bar i { display:block; height:3px; background:var(--plum-red); }
+</style></head><body>
+<div class="shell">
+  <div class="masthead">
+    <div style="display:flex;align-items:center;gap:32px"><span class="logo">Plum</span>
+    <nav class="nav"><a class="on">Deals</a><a>People</a><a>Plan library</a></nav></div>
+    <div class="mast-right"><span>aditya@plumhq.com</span><span>sign out</span></div>
+  </div>
+
+  <div class="crumb"><a>← Deals</a></div>
+
+  <div class="hero">
+    <div>
+      <h1>Meridian Logistics Pvt&nbsp;Ltd</h1>
+      <div class="sub">Pvt Ltd · Transport &amp; Logistics · Pune</div>
+    </div>
+    <div class="startbox">
+      <div class="lbl">Cover starts</div>
+      <div class="date">1 Nov 2026</div>
+      <div style="margin-top:5px"><span class="chip chip--w">45 days</span></div>
+    </div>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><div class="l">Incumbent</div><div class="v">ICICI Lombard</div><div class="n">since 1 Nov 2025</div></div>
+    <div class="fact"><div class="l">Sum insured</div><div class="v">₹5,00,000</div><div class="n">family floater</div></div>
+    <div class="fact"><div class="l">Lives</div><div class="v">412</div><div class="n">134 employees</div></div>
+    <div class="fact"><div class="l">Expiring premium</div><div class="v">₹41,20,000</div><div class="n">excluding GST</div></div>
+  </div>
+
+  <div class="stages">
+    <div class="stage done"><span class="num">1</span><div class="txt"><div class="ttl">Company</div><div class="st">Pvt Ltd · Transport &amp; Logistics · Pune</div></div><span class="chip chip--q">done</span></div>
+    <div class="stage now"><span class="num">2</span><div class="txt"><div class="ttl">Expiring policy</div><div class="st">1 document · terms not yet read</div></div><button class="btn">continue</button></div>
+    <div class="stage todo"><span class="num">3</span><div class="txt"><div class="ttl">Members</div><div class="st">No roster uploaded</div></div></div>
+    <div class="stage todo"><span class="num">4</span><div class="txt"><div class="ttl">Claims</div><div class="st">No claims data</div></div></div>
+    <div class="stage todo"><span class="num">5</span><div class="txt"><div class="ttl">Terms &amp; options</div><div class="st">0 of 58 confirmed</div><div class="bar" style="margin-top:7px"><i style="width:0"></i></div></div></div>
+    <div class="stage todo"><span class="num">6</span><div class="txt"><div class="ttl">RFQ</div><div class="st">Locked until terms are confirmed</div></div></div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,93 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><link rel="stylesheet" href="_shared.css">
+<style>
+  .crumb { padding:22px 0 0; font-size:13px; } .crumb a { color:var(--fg-muted); }
+  .hd { display:flex; align-items:flex-end; justify-content:space-between; padding:12px 0 18px; }
+  h1 { font-size:30px; letter-spacing:-.04em; }
+  .hd .sub { font-size:13px; margin-top:5px; }
+  .prog { display:flex; align-items:center; gap:12px; font-size:13px; color:var(--fg-2); }
+  .bar { height:4px; width:150px; background:var(--line-lavender-2); }
+  .bar i { display:block; height:4px; background:var(--plum-red); width:41%; }
+  /* Option tabs: expiring is fixed, proposed options sit beside it */
+  .opts { display:flex; align-items:stretch; border:1px solid var(--line-lavender); border-bottom:0; }
+  .opt { padding:11px 18px; border-right:.5px solid var(--line-lavender-2); background:var(--cream-deep); font-size:13px; }
+  .opt .t { font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-muted); }
+  .opt .n { font-size:14.5px; margin-top:2px; }
+  .opt.on { background:var(--sev-blush); box-shadow:inset 0 -3px 0 var(--plum-red); }
+  .opt.add { color:var(--plum-red); display:flex; align-items:center; }
+  .grid { border:1px solid var(--line-lavender); }
+  .sec { border-bottom:.5px solid var(--line-lavender-2); }
+  .sec:last-child { border-bottom:0; }
+  .sech { display:flex; align-items:center; gap:14px; padding:12px 18px; background:var(--cream-warm); cursor:pointer; }
+  .sech .caret { color:var(--fg-muted); font-size:11px; width:10px; }
+  .sech .nm { font-family:var(--font-display); font-size:17px; flex:1; }
+  .sech .ct { font-size:12px; color:var(--fg-muted); }
+  .row { display:grid; grid-template-columns:1.5fr 1.6fr 1.6fr; gap:0; border-top:.5px solid var(--line-lavender-2); background:var(--cream-deep); }
+  .row > div { padding:11px 18px; font-size:13.5px; }
+  .row .lbl { color:var(--fg-2); }
+  .row .exp { border-left:.5px solid var(--line-lavender-2); }
+  .row .prop { border-left:.5px solid var(--line-lavender-2); }
+  .row.changed .prop { background:var(--sev-blush); box-shadow:inset 3px 0 0 var(--plum-red); }
+  .same { color:var(--fg-muted); font-size:12.5px; font-style:italic; }
+  .colhead { display:grid; grid-template-columns:1.5fr 1.6fr 1.6fr; background:var(--cream); border-bottom:1px solid var(--line-lavender); }
+  .colhead > div { padding:10px 18px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--fg-muted); }
+  .colhead .c2, .colhead .c3 { border-left:.5px solid var(--line-lavender-2); }
+  .foot { display:flex; justify-content:space-between; align-items:center; margin-top:28px; padding-top:20px; border-top:1px solid var(--line-lavender); }
+  .warn { font-size:13px; color:var(--fg-2); }
+  .collapsed .row { display:none; }
+</style></head><body>
+<div class="shell">
+  <div class="masthead">
+    <div style="display:flex;align-items:center;gap:32px"><span class="logo">Plum</span>
+    <nav class="nav"><a class="on">Deals</a><a>People</a><a>Plan library</a></nav></div>
+    <div class="mast-right"><span>aditya@plumhq.com</span><span>sign out</span></div>
+  </div>
+
+  <div class="crumb"><a>← Meridian Logistics Pvt Ltd</a></div>
+
+  <div class="hd">
+    <div><h1>Terms</h1><div class="sub">Confirm what expires, then say what you are asking for.</div></div>
+    <div class="prog"><span>24 of 58 confirmed</span><span class="bar"><i></i></span></div>
+  </div>
+
+  <div class="opts">
+    <div class="opt on"><div class="t">Baseline</div><div class="n">Expiring terms</div></div>
+    <div class="opt"><div class="t">Option 1</div><div class="n">Same as expiring</div></div>
+    <div class="opt"><div class="t">Option 2</div><div class="n">+ Maternity ₹75k</div></div>
+    <div class="opt add">+ add an option</div>
+  </div>
+
+  <div class="grid">
+    <div class="colhead"><div>Benefit</div><div class="c2">Expiring</div><div class="c3">Option 2 — proposed</div></div>
+
+    <div class="sec">
+      <div class="sech"><span class="caret">▾</span><span class="nm">The basics</span><span class="ct">8 benefits · 3 changed</span></div>
+      <div class="row"><div class="lbl">Members covered</div><div class="exp">Employee, Spouse, Children, Parents</div><div class="prop"><span class="same">same as expiring</span></div></div>
+      <div class="row changed"><div class="lbl">Siblings</div><div class="exp">Not covered</div><div class="prop">Covered in place of parents</div></div>
+      <div class="row"><div class="lbl">Age band</div><div class="exp">91 days – 80 years</div><div class="prop"><span class="same">same as expiring</span></div></div>
+      <div class="row changed"><div class="lbl">Max age — parents</div><div class="exp">80 years</div><div class="prop">85 years</div></div>
+      <div class="row"><div class="lbl">LGBTQ cover</div><div class="exp">Covered</div><div class="prop"><span class="same">same as expiring</span></div></div>
+    </div>
+
+    <div class="sec collapsed">
+      <div class="sech"><span class="caret">▸</span><span class="nm">Sum insured, limits &amp; copay</span><span class="ct">12 benefits · 1 changed</span></div>
+    </div>
+
+    <div class="sec collapsed">
+      <div class="sech"><span class="caret">▸</span><span class="nm">Mother &amp; child</span><span class="ct">6 benefits · 1 changed</span></div>
+    </div>
+
+    <div class="sec collapsed">
+      <div class="sech"><span class="caret">▸</span><span class="nm">Expenses covered</span><span class="ct">9 benefits · unchanged</span></div>
+    </div>
+
+    <div class="sec collapsed">
+      <div class="sech"><span class="caret">▸</span><span class="nm">Additional covers</span><span class="ct">11 benefits · 34 not yet confirmed</span></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="warn">34 benefits still to confirm before this can go to insurers.</div>
+    <div><button class="btn btn--q">save</button> <button class="btn btn--2">send to insurers</button></div>
+  </div>
+</div>
+</body></html>
