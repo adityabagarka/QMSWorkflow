@@ -4,7 +4,7 @@ Internal system for Plum's rollover quote workflow. `ARCHITECTURE.md` is the
 source of truth for the data model, module specs, roles and security
 requirements; `CLAUDE.md` carries scope and conventions.
 
-## Status: M0 — Foundation, complete
+## Status: M0 complete; manual deal entry in progress
 
 Signed off on 17 September 2026: deployed to Supabase `ap-south-1`, signed in
 through Google Workspace SSO, and an access request approved through the UI.
@@ -24,7 +24,23 @@ on push: it writes to a real database, so it should be a deliberate act. The
 assertions run against that database as part of it, so a deploy that would break
 the §15 guarantees fails rather than lands.
 
-Nothing beyond M0 has been started.
+### In progress — manual deal entry
+
+Salesforce sync is deferred: deals and customer profiles are entered by hand
+first, so §18.4's field mapping is only needed when the sync itself is built.
+
+| Piece                                        | State                                                  |
+| -------------------------------------------- | ------------------------------------------------------ |
+| Object storage, inheriting case permissions  | done — `case-documents`, private                       |
+| Create a deal, list and detail screens       | done                                                   |
+| Appetite as guidance rather than a gate      | done                                                   |
+| Policy upload, parse and review              | not started                                            |
+| Member roster upload, cleanup and deviations | schema done (`member_deviations`), screens not started |
+| Claims history upload                        | not started                                            |
+
+`docs/decisions/0007-rollover-vs-preapproved.md` is the one to read first: it
+explains why this workflow flags members rather than dropping them, which is the
+difference most likely to be got wrong.
 
 ### Open before the next milestones
 
@@ -32,6 +48,9 @@ Nothing beyond M0 has been started.
   entered by hand first, so §18.4's field mapping is only needed when the sync
   itself is built.
 - **M4** needs the workflow orchestrator decision (§18.3, Temporal recommended).
+- **Policy extraction** needs an `ANTHROPIC_API_KEY` to run, and a data
+  processing agreement before any real policy is uploaded. See
+  `docs/decisions/0008-llm-provider.md`.
 - **The Plum logo is loaded from `app.plumhq.com`** by design, so a rebrand
   reaches this app without a deploy. It falls back to a wordmark if that URL
   ever moves. See `src/components/masthead.tsx`.
