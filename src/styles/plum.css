@@ -415,12 +415,224 @@ input[type='text'] {
 /* Deal screens                                                            */
 /* ---------------------------------------------------------------------- */
 
-.section__head {
+.crumb {
+  padding: 20px 0 0;
+  font-size: 13px;
+}
+
+.crumb a {
+  color: var(--fg-muted);
+}
+
+.crumb a:hover {
+  color: var(--plum-red);
+}
+
+/* Company identity as one block: name, then what the company is, with the date
+   the deal turns on set against it. */
+.deal-hero {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
+  gap: 40px;
+  padding: 12px 0 20px;
+}
+
+.deal-hero h1 {
+  font-size: clamp(26px, 3.4vw, 36px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.deal-hero__what {
+  font-size: 13.5px;
+  color: var(--fg-muted);
+  margin: 7px 0 0;
+}
+
+.deal-hero__start {
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.deal-hero__start .label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+
+.deal-hero__start .date {
+  font-family: var(--font-display);
+  font-size: 27px;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+/* A strip of the four numbers an RM checks first. */
+.facts {
+  display: flex;
+  border-top: 1px solid var(--line-lavender);
+  border-bottom: 1px solid var(--line-lavender);
   flex-wrap: wrap;
+}
+
+.facts__item {
+  flex: 1 1 180px;
+  padding: 14px 18px 13px;
+  border-right: 0.5px solid var(--line-lavender-2);
+}
+
+.facts__item:last-child {
+  border-right: 0;
+}
+
+.facts__label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+
+.facts__value {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  margin-top: 3px;
+}
+
+/* The one place GST is mentioned: directly under the figure it qualifies. */
+.facts__note {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+
+/* Stage checklist — the deal's home. Progress is legible without moving. */
+.stages {
+  margin-top: 30px;
+  border: 1px solid var(--line-lavender);
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 20px;
+  border-bottom: 0.5px solid var(--line-lavender-2);
+  background: var(--cream-deep);
+}
+
+.stage:last-child {
+  border-bottom: 0;
+}
+
+.stage__num {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--fg-muted);
+  width: 18px;
+  flex: 0 0 18px;
+}
+
+.stage__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stage__title {
+  font-size: 15px;
+}
+
+.stage__state {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.stage--done .stage__num {
+  color: var(--plum-red);
+}
+
+.stage--now {
+  background: var(--sev-blush);
+  box-shadow: inset 3px 0 0 var(--plum-red);
+}
+
+.stage--todo .stage__title,
+.stage--todo .stage__num {
+  color: var(--fg-muted);
+}
+
+.bar {
+  height: 3px;
+  width: 140px;
+  background: var(--line-lavender-2);
+  margin-top: 7px;
+}
+
+.bar i {
+  display: block;
+  height: 3px;
+  background: var(--plum-red);
+}
+
+/* Step navigation inside a stage. */
+.wiz {
+  display: flex;
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  margin: 24px 0 0;
+  flex-wrap: wrap;
+}
+
+.wiz a {
+  flex: 1 1 120px;
+  padding: 12px 16px;
+  border-right: 0.5px solid var(--line-lavender-2);
+  color: var(--fg-muted);
+}
+
+.wiz a:last-child {
+  border-right: 0;
+}
+
+.wiz a:hover {
+  text-decoration: none;
+  color: var(--fg-1);
+}
+
+.wiz__n {
+  font-family: var(--font-display);
+  font-size: 19px;
+  display: block;
+  line-height: 1.1;
+}
+
+.wiz__t {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-top: 3px;
+}
+
+.wiz a.is-done {
+  color: var(--fg-2);
+}
+
+.wiz a.is-now {
+  background: var(--sev-blush);
+  color: var(--fg-1);
+  box-shadow: inset 0 -3px 0 var(--plum-red);
+}
+
+.step-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-lavender);
 }
 
 .field {
@@ -449,84 +661,14 @@ input[type='text'] {
   font-size: 13px;
   color: var(--fg-2);
   margin: 6px 0 0;
-  line-height: 1.5;
 }
 
-/*
- * Phase tracker. Deliberately a row of hairline-separated steps rather than a
- * progress bar: a case does not advance smoothly, it sits in a phase waiting on
- * somebody, and a bar implies a completeness that is not being measured.
- */
-.phase-track {
+.section__head {
   display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
   flex-wrap: wrap;
-  gap: 0;
-  border: 1px solid var(--line-lavender);
-  margin: 28px 0;
-  background: var(--cream-deep);
-}
-
-.phase-track__step {
-  flex: 1 1 120px;
-  padding: 12px 14px;
-  border-right: 0.5px solid var(--line-lavender-2);
-  color: var(--fg-muted);
-}
-
-.phase-track__step:last-child {
-  border-right: 0;
-}
-
-.phase-track__step--done {
-  color: var(--fg-2);
-}
-
-/* Only the current phase carries the red. Everything else is quiet — the point
-   of the tracker is to answer "where is this now", not to decorate. */
-.phase-track__step--current {
-  background: var(--sev-blush);
-  color: var(--fg-1);
-  box-shadow: inset 2px 0 0 var(--plum-red);
-}
-
-.phase-track__number {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 20px;
-  line-height: 1.1;
-}
-
-.phase-track__label {
-  display: block;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-top: 4px;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 24px 32px;
-  margin: 28px 0 0;
-  padding-top: 24px;
-  border-top: 1px solid var(--line-lavender);
-}
-
-.detail-grid dt {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-muted);
-  margin-bottom: 6px;
-}
-
-.detail-grid dd {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 19px;
-  color: var(--fg-1);
 }
 
 .timeline {
@@ -536,11 +678,9 @@ input[type='text'] {
 }
 
 .timeline li {
-  display: flex;
-  gap: 20px;
-  padding: 10px 0;
+  padding: 8px 0;
   border-bottom: 0.5px solid var(--line-lavender-2);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .timeline li:last-child {
@@ -548,22 +688,185 @@ input[type='text'] {
 }
 
 .timeline__when {
-  flex: 0 0 140px;
+  display: block;
   color: var(--fg-muted);
-  font-size: 13px;
+  font-size: 11.5px;
 }
 
-.timeline__what {
+/* ---------------------------------------------------------------------- */
+/* Terms grid                                                              */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * One CSS grid for the whole table, not a grid per section. Columns are
+ * declared once on the container, so every value sits under its own heading
+ * however many sections are open or closed — misalignment here would mean
+ * reading an option's term against the wrong column, which is the single most
+ * expensive misreading available on this screen.
+ */
+.terms {
+  border: 1px solid var(--line-lavender);
+  overflow-x: auto;
+}
+
+.terms__grid {
+  display: grid;
+  min-width: 720px;
+}
+
+.terms__head {
+  display: contents;
+}
+
+.terms__head > div {
+  position: sticky;
+  top: 0;
+  background: var(--cream);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-lavender);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+  z-index: 2;
+}
+
+.terms__head .opt-name {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--fg-1);
+  margin-top: 3px;
+}
+
+/*
+ * Section headers. Serif, heavier, wider-set and on the warm band — so the eye
+ * reads them as structure rather than as another term. The term rows
+ * underneath stay deliberately quiet: highlighting every row would leave
+ * nothing to differentiate.
+ */
+.terms__section {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  background: var(--cream-warm);
+  border-top: 1px solid var(--line-lavender);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  font: inherit;
+}
+
+.terms__section:first-of-type {
+  border-top: 0;
+}
+
+.terms__caret {
+  font-size: 10px;
+  color: var(--plum-red);
+  width: 10px;
+  flex: 0 0 10px;
+}
+
+.terms__section-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.terms__section-count {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.terms__cell {
+  padding: 10px 16px;
+  font-size: 13.5px;
+  background: var(--cream-deep);
+  border-top: 0.5px solid var(--line-lavender-2);
+  border-left: 0.5px solid var(--line-lavender-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.terms__cell--label {
+  border-left: 0;
+  color: var(--fg-2);
+}
+
+/* A changed cell is marked by fill alone. The red rule was doing the same job
+   twice and made the grid look busier than the information warrants. */
+.terms__cell--changed {
+  background: var(--sev-blush);
+}
+
+.terms__same {
+  color: var(--fg-muted);
+  font-style: italic;
+  font-size: 12.5px;
+}
+
+.terms__unset {
+  color: var(--plum-red);
+  font-size: 12.5px;
+}
+
+.terms__addopt {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  color: var(--plum-red);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 1.5px;
+}
+
+.terms__rename {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.terms__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line-lavender);
+  flex-wrap: wrap;
 }
 
 @media (max-width: 640px) {
-  .phase-track__step {
-    flex-basis: 33%;
+  .deal-hero {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .timeline li {
-    flex-direction: column;
-    gap: 2px;
+  .deal-hero__start {
+    text-align: left;
+  }
+
+  .stage {
+    flex-wrap: wrap;
   }
 }

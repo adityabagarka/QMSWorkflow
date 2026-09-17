@@ -3,164 +3,209 @@ import { notFound } from 'next/navigation';
 import { requireActiveSession } from '@/lib/auth/session';
 import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
-import { PHASES, phaseLabel } from '@/lib/cases/phases';
-import { appetiteGuidance, type AppetiteSignal } from '@/lib/cases/appetite';
+import { STAGES, stageHref } from '@/lib/cases/phases';
+import {
+  GST_NOTE,
+  coverStartChip,
+  describeCompany,
+  formatCount,
+  formatDate,
+  formatRupees,
+} from '@/lib/format';
 
 type DealDetail = {
   id: string;
   customer_name: string;
   current_phase: number;
-  state: string;
   industry: string | null;
   entity_type: string | null;
-  policy_expiry_date: string | null;
-  created_at: string;
-  app_users: { name: string; email: string } | null;
+  cover_start_date: string | null;
+  policies: {
+    id: string;
+    insurer_name: string | null;
+    policy_start: string | null;
+    sum_insured: number | null;
+  }[];
 };
 
-/**
- * Appetite shown as expectation, never as a verdict.
- *
- * The wording matters: "usually decline" describes a pattern in the reference
- * data, not a decision. The decision comes from the insurer, by email, and is
- * recorded when it arrives.
- */
-function AppetiteNote({ label, signal }: { label: string; signal: AppetiteSignal | null }) {
-  if (!signal) return null;
-
-  const { decliningInsurers, totalInsurers } = signal;
-
-  if (decliningInsurers.length === 0) {
-    return <p className="field__hint">{label}: no insurer on the panel usually declines this.</p>;
-  }
-
-  return (
-    <p className="field__hint">
-      {label}:{' '}
-      <strong>
-        {decliningInsurers.length} of {totalInsurers}
-      </strong>{' '}
-      insurers usually decline — {decliningInsurers.join(', ')}. They are still sent the RFQ; their
-      answer is recorded when it comes back.
-    </p>
-  );
-}
+/** What each stage says about itself when the deal page is at rest. */
+type StageState = { state: string; done: boolean; progress?: number };
 
 export default async function DealPage({ params }: { params: { id: string } }) {
   const session = await requireActiveSession();
   const supabase = supabaseServer();
 
-  // RLS decides visibility. A deal outside the caller's span simply is not
-  // found — which is the right answer, and leaks nothing about its existence.
+  // Row-level security decides visibility: a deal outside the caller's span is
+  // simply not found, which leaks nothing about whether it exists.
   const { data: deal } = await supabase
     .from('cases')
     .select(
-      'id, customer_name, current_phase, state, industry, entity_type, policy_expiry_date, created_at, app_users!cases_owner_user_id_fkey(name, email)',
+      'id, customer_name, current_phase, industry, entity_type, cover_start_date, policies(id, insurer_name, policy_start, sum_insured)',
     )
     .eq('id', params.id)
     .maybeSingle<DealDetail>();
 
   if (!deal) notFound();
 
-  const [guidance, { data: events }] = await Promise.all([
-    appetiteGuidance(deal.industry, deal.entity_type),
+  const policy = deal.policies?.[0] ?? null;
+
+  const [documents, members, claims, review, options, events] = await Promise.all([
+    supabase
+      .from('policy_documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', deal.id),
+    supabase
+      .from('member_records')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', deal.id),
+    supabase
+      .from('claims_uploads')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', deal.id),
+    policy
+      ? supabase.rpc('policy_review_progress', { p_policy_id: policy.id }).single<{
+          decided: number;
+          total: number;
+        }>()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('rfq_options')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', deal.id),
     supabase
       .from('case_events')
-      .select('id, event_type, created_at')
+      .select('event_type, created_at')
       .eq('case_id', deal.id)
       .order('created_at', { ascending: false })
-      .limit(10)
-      .returns<{ id: string; event_type: string; created_at: string }[]>(),
+      .limit(5)
+      .returns<{ event_type: string; created_at: string }[]>(),
   ]);
+
+  const decided = review?.data?.decided ?? 0;
+  const total = review?.data?.total ?? 0;
+  const docCount = documents.count ?? 0;
+  const memberCount = members.count ?? 0;
+  const claimCount = claims.count ?? 0;
+  const optionCount = options.count ?? 0;
+
+  const stageStates: Record<number, StageState> = {
+    0: { state: describeCompany([deal.entity_type, deal.industry]), done: true },
+    1: {
+      state: policy
+        ? `${policy.insurer_name ?? 'Insurer not set'} · ${docCount} document${docCount === 1 ? '' : 's'}`
+        : 'Not started',
+      done: Boolean(policy && docCount > 0),
+    },
+    2: {
+      state: memberCount > 0 ? `${formatCount(memberCount)} lives` : 'No roster uploaded',
+      done: memberCount > 0,
+    },
+    3: { state: claimCount > 0 ? `${claimCount} file(s)` : 'No claims data', done: claimCount > 0 },
+    4: {
+      state:
+        total > 0
+          ? `${decided} of ${total} confirmed${optionCount > 0 ? ` · ${optionCount} option${optionCount === 1 ? '' : 's'}` : ''}`
+          : 'Nothing confirmed yet',
+      done: total > 0 && decided === total,
+      progress: total > 0 ? decided / total : 0,
+    },
+    5: {
+      state: total > 0 && decided === total ? 'Ready to send' : 'Locked until terms are confirmed',
+      done: false,
+    },
+  };
+
+  const chip = coverStartChip(deal.cover_start_date);
 
   return (
     <main className="shell">
       <Masthead meta={session.email} />
 
-      <section className="section">
-        <p className="eyebrow">Rollover deal</p>
-        <h1>{deal.customer_name}</h1>
-        <hr className="section__rule" />
+      <div className="crumb">
+        <Link href="/deals">← Deals</Link>
+      </div>
 
-        <div className="phase-track">
-          {PHASES.map((p) => (
-            <div
-              key={p.phase}
-              className={
-                p.phase < deal.current_phase
-                  ? 'phase-track__step phase-track__step--done'
-                  : p.phase === deal.current_phase
-                    ? 'phase-track__step phase-track__step--current'
-                    : 'phase-track__step'
-              }
-            >
-              <span className="phase-track__number">{p.phase}</span>
-              <span className="phase-track__label">{p.label}</span>
-            </div>
-          ))}
+      <div className="deal-hero">
+        <div>
+          <h1>{deal.customer_name}</h1>
+          <p className="deal-hero__what">{describeCompany([deal.entity_type, deal.industry])}</p>
         </div>
+        <div className="deal-hero__start">
+          <div className="label">Cover starts</div>
+          <div className="date">{formatDate(deal.cover_start_date)}</div>
+          <div style={{ marginTop: 5 }}>
+            <span className={chip.className}>{chip.label}</span>
+          </div>
+        </div>
+      </div>
 
-        <dl className="detail-grid">
-          <div>
-            <dt>Phase</dt>
-            <dd>{phaseLabel(deal.current_phase)}</dd>
-          </div>
-          <div>
-            <dt>Owner</dt>
-            <dd>{deal.app_users?.name ?? 'Unknown'}</dd>
-          </div>
-          <div>
-            <dt>Policy expiry</dt>
-            <dd>
-              {deal.policy_expiry_date
-                ? new Date(deal.policy_expiry_date).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : 'Not set'}
-            </dd>
-          </div>
-          <div>
-            <dt>Industry</dt>
-            <dd>{deal.industry ?? 'Not known yet'}</dd>
-          </div>
-          <div>
-            <dt>Constitution</dt>
-            <dd>{deal.entity_type ?? 'Not known yet'}</dd>
-          </div>
-        </dl>
+      <div className="facts">
+        <div className="facts__item">
+          <div className="facts__label">Incumbent</div>
+          <div className="facts__value">{policy?.insurer_name ?? '—'}</div>
+          {policy?.policy_start ? (
+            <div className="facts__note">since {formatDate(policy.policy_start)}</div>
+          ) : null}
+        </div>
+        <div className="facts__item">
+          <div className="facts__label">Sum insured</div>
+          <div className="facts__value">{formatRupees(policy?.sum_insured)}</div>
+        </div>
+        <div className="facts__item">
+          <div className="facts__label">Lives</div>
+          <div className="facts__value">{memberCount > 0 ? formatCount(memberCount) : '—'}</div>
+        </div>
+        <div className="facts__item">
+          <div className="facts__label">Expiring premium</div>
+          <div className="facts__value">—</div>
+          {/* The single place GST is qualified: against the figure it applies to. */}
+          <div className="facts__note">{GST_NOTE}</div>
+        </div>
+      </div>
 
-        {guidance.industry || guidance.entityType ? (
-          <div className="notice" style={{ marginTop: 28 }}>
-            <p className="eyebrow">What to expect</p>
-            <AppetiteNote label="Industry" signal={guidance.industry} />
-            <AppetiteNote label="Constitution" signal={guidance.entityType} />
-          </div>
-        ) : null}
-      </section>
+      <div className="stages">
+        {STAGES.map((stage) => {
+          const s = stageStates[stage.phase]!;
+          const isNow = stage.phase === deal.current_phase;
+          const className = isNow
+            ? 'stage stage--now'
+            : s.done
+              ? 'stage stage--done'
+              : 'stage stage--todo';
+
+          return (
+            <div key={stage.phase} className={className}>
+              <span className="stage__num">{stage.phase + 1}</span>
+              <div className="stage__body">
+                <div className="stage__title">{stage.label}</div>
+                <div className="stage__state">{s.state}</div>
+                {s.progress !== undefined && s.progress > 0 ? (
+                  <div className="bar">
+                    <i style={{ width: `${Math.round(s.progress * 100)}%` }} />
+                  </div>
+                ) : null}
+              </div>
+              {isNow ? (
+                <Link className="button" href={stageHref(deal.id, stage.phase)}>
+                  continue
+                </Link>
+              ) : s.done ? (
+                <Link className="button button--secondary" href={stageHref(deal.id, stage.phase)}>
+                  open
+                </Link>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
 
       <section className="section">
-        <p className="eyebrow">Next</p>
-        <h2>Bring in the expiring programme.</h2>
-        <hr className="section__rule" />
-        <p className="standfirst">
-          A rollover is quoted against what the customer already has. The policy copy sets the
-          terms, the roster is the population being quoted for, and the claims history drives the
-          indicative pricing.
-        </p>
-        <p className="field__hint" style={{ marginTop: 16 }}>
-          Upload screens arrive with the next milestone.
-        </p>
-      </section>
-
-      <section className="section">
-        <p className="eyebrow">Timeline</p>
-        <hr className="section__rule" />
-        {events && events.length > 0 ? (
+        <p className="eyebrow">Activity</p>
+        {events.data && events.data.length > 0 ? (
           <ul className="timeline">
-            {events.map((e) => (
-              <li key={e.id}>
+            {events.data.map((e, i) => (
+              <li key={i}>
+                {e.event_type.replace(/_/g, ' ')}
                 <span className="timeline__when">
                   {new Date(e.created_at).toLocaleString('en-GB', {
                     day: 'numeric',
@@ -169,17 +214,12 @@ export default async function DealPage({ params }: { params: { id: string } }) {
                     minute: '2-digit',
                   })}
                 </span>
-                <span className="timeline__what">{e.event_type.replace(/_/g, ' ')}</span>
               </li>
             ))}
           </ul>
         ) : (
           <p className="empty">Nothing recorded yet.</p>
         )}
-
-        <p style={{ marginTop: 32 }}>
-          <Link href="/deals">Back to deals</Link>
-        </p>
       </section>
     </main>
   );

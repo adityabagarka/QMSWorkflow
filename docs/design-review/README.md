@@ -1,47 +1,51 @@
-# Design review — not production code
+# Design review
 
-Static mockups for sign-off. Nothing here is wired to anything; `render.mjs`
-screenshots them with the image's pinned Chromium. Delete once the decisions
-land in `src/`.
+`render.mjs` screenshots a page with the image's pinned Chromium, so a layout
+can be looked at without deploying. The HTML files here link the real
+stylesheet, `src/styles/plum.css` — they are a way of seeing the built styles
+with representative content, not a second implementation to keep in step.
 
-## What the feedback changed
+    node render.mjs 06-deal-built.html
 
-**Helper text that explained the implementation is gone.** "Your own deals, and
-those of anyone reporting to you. A colleague at your own level cannot see
-these" is a description of the row-level security model. A user does not need
-the mechanism explained; they need their deals listed.
+## Decisions this review settled
 
-**Policy START date, everywhere.** The date that matters is when cover begins,
-so the list and the deal page lead with "Cover starts" and a countdown, and the
-expiring policy's own start date is a supporting fact. This wants a schema
-change: `cases.policy_expiry_date` is the wrong field to be carrying.
+**The deal page is a hybrid.** A checklist of the six stages is the deal's home,
+because a rollover is picked up and put down over weeks and progress has to be
+legible at rest. Step navigation with back/next lives inside a stage, where the
+work is sequential.
 
-**Premiums exclude GST, said once.** Each premium figure carries "excluding GST"
-directly beneath it, at the value, and nowhere else. No repeated disclaimers.
+**Cover start, not expiry.** The date a deal turns on is the inception of the
+policy being quoted. Screens lead with it and count down to it.
+`cases.policy_expiry_date` remains, because §11's reminder cascade keys off when
+the current programme ends, but it is no longer what anyone reads first.
 
-**Removed:** the "ROLLOVER DEAL" eyebrow (every deal is one), the "Phase" row
-that repeated the tracker directly above it, and the "Bringing in the expiring
-programme" section with its explanatory paragraph.
+**Premiums exclude GST, said once,** against the figure, by the component that
+renders it. `GST_NOTE` in `src/lib/format.ts` exists so there is one place to
+change it and no temptation to repeat it.
 
-**Moved:** owner out of the first rank of facts; "back to deals" to a breadcrumb
-at the top where it belongs rather than stranded at the bottom; activity to a
-sidebar rather than a full-width section competing with the work.
+**No helper text explaining the system to itself.** The row-level security
+model, the phase numbering and the storage layout are implementation. A user
+needs their deals listed.
 
-**Company identity is one block:** name large, constitution and industry as
-subtext beneath it, cover start date and countdown on the right.
+## The terms grid
 
-## The two deal-page options
+**One CSS grid for the whole table.** Columns are declared once on the
+container; sections span all of them. A grid per section would drift as sections
+open and close, and a value read against the wrong column means an insurer
+quoting the wrong cover.
 
-Both replace the flat phase tracker with something navigable.
+**Sections are unmistakably not terms**: bold serif at 18px on the warm band,
+against 13.5px sans on cream-deep for the rows beneath. The rows stay quiet on
+purpose — highlighting each one would leave nothing to distinguish.
 
-**A — wizard-led.** Numbered steps across the top, one step's work in the main
-column, explicit back/next. Closest to the `plum-quotes` flow. Best when the
-work is genuinely sequential and the RM is completing a deal in one sitting.
+**Options are columns, numbered from 1.** Option 1 is the expiring terms
+unchanged and stores no rows at all, so it cannot drift from them. Options 2
+onwards each override one or more benefits, and an override is exactly a stored
+row — which means "changed" needs no diffing, and correcting an expiring term
+flows into every option that had not overridden it.
 
-**B — overview and checklist.** The same six stages as rows, each showing its
-own state, with the current one carrying the action. Best when a deal is picked
-up and put down over weeks — which is what a rollover actually is — because
-progress is legible at rest rather than only while moving through it.
+**Names are editable.** A generated name stops describing an option as soon as
+several terms move.
 
-They are not exclusive: B works as the deal's home, with A's back/next
-navigation inside each stage once you are in it.
+**A changed cell is marked by fill alone.** The earlier red rule said the same
+thing twice and made the grid look busier than the information warrants.
