@@ -20,24 +20,37 @@ begin
 
   -- Private. A signed URL, minted per request for someone who has already
   -- passed the checks below, is the only way to read one of these files.
-  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-  values (
-    'case-documents',
-    'case-documents',
-    false,
-    52428800, -- 50 MB; comfortably above a scanned policy, well below a mistake
-    array[
-      'application/pdf',
-      'image/png',
-      'image/jpeg',
-      'text/csv',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ]
-  )
-  on conflict (id) do update
-    set file_size_limit   = excluded.file_size_limit,
-        allowed_mime_types = excluded.allowed_mime_types;
+  --
+  -- storage.buckets is owned by supabase_storage_admin, so depending on how the
+  -- project is configured this insert may be refused. That is recoverable — the
+  -- bucket can be created in the dashboard — so it is caught and explained
+  -- rather than failing the deploy with a bare permissions error.
+  begin
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    values (
+      'case-documents',
+      'case-documents',
+      false,
+      52428800, -- 50 MB; comfortably above a scanned policy, well below a mistake
+      array[
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ]
+    )
+    on conflict (id) do update
+      set file_size_limit    = excluded.file_size_limit,
+          allowed_mime_types = excluded.allowed_mime_types;
+  exception
+    when insufficient_privilege then
+      raise warning using message =
+        'Could not create the case-documents bucket: this role cannot write storage.buckets. '
+        'Create it by hand in the Supabase dashboard (Storage -> New bucket), named '
+        'case-documents, PRIVATE, 50 MB limit. The access policies below still apply to it.';
+  end;
 end
 $$;
 
