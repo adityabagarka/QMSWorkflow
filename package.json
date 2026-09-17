@@ -20,7 +20,8 @@
     "db:import-guardrails": "tsx scripts/import-guardrails/index.ts",
     "db:seed:synthetic": "tsx scripts/seed-synthetic.ts",
     "test:parse": "tsx scripts/__tests__/parse-connection-string.ts",
-    "db:check": "tsx scripts/check-connection.ts"
+    "db:check": "tsx scripts/check-connection.ts",
+    "test:routes": "tsx scripts/__tests__/wizard-routes.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

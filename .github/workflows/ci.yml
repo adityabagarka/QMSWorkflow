@@ -49,6 +49,10 @@ jobs:
       # Supabase-generated password broke the first staging deploy.
       - run: npm run test:parse
 
+      # Every wizard step must have a page: the navigation and the routes are
+      # separately correct and can disagree, which is a 404 nothing else catches.
+      - run: npm run test:routes
+
       - name: Apply migrations
         run: npm run db:migrate
 
