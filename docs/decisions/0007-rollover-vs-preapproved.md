@@ -102,20 +102,27 @@ Where the expiring terms happen to sit inside our guardrails, the matching SKU
 is offered alongside the bespoke quote, marked for internal users so the
 difference is visible. External presentation is deferred.
 
-Naming: §6 calls this "Plum exclusive"; the brief for this work called it "Plum
-Standard". **Open — pick one before it reaches a screen.** "Plum Standard" reads
-better against a bespoke alternative, but the spec's term is the one written
-down.
+Naming: **"Plum Standard"**, confirmed. §6's "Plum exclusive" is superseded — the
+label reads against a bespoke alternative, which is what it sits next to here.
 
-## Open questions
+## Continuation
 
-1. **LLM provider for policy parsing (§18.2).** Reading the policy document and
-   extracting terms needs a provider, and §18.2 makes that a human decision, not
-   a default. The pipeline can be built provider-agnostic with manual entry as
-   the fallback, so this does not block — but it blocks parsing actually running.
-2. **D-07 and D-08** as classified above.
-3. **"Plum Standard" or "Plum exclusive".**
-4. **Is every member in the first upload a continuation?** The initial roster is
-   the currently-covered population, so `is_continuation` defaults true for it —
-   but that should be confirmed rather than assumed, since it changes how every
-   age deviation is worded to the insurer.
+Confirmed: **every member in the uploaded roster is a continuation.** The upload
+is the current programme's active member list, and it is the population being
+quoted for. So `is_continuation` defaults to true for a roster upload, and only
+members added afterwards, by hand, default to false.
+
+This also scopes the renewal flow, which is worth writing down now rather than
+rediscovering later: renewals will draw the member list from Plum's own member
+database instead of a file upload, but the logic downstream is identical — the
+drawn list is the currently-covered population, so it arrives as continuations
+too. The difference is the source of the roster, not what happens to it. Keeping
+the deviation engine keyed on `member_records` rather than on the upload means
+that swap is a new ingestion path, not a second engine.
+
+## Open question
+
+**LLM provider for policy parsing (§18.2).** See ADR 0008 — Claude is proposed,
+with costs. This does not block building the pipeline, which is written
+provider-agnostic with manual entry as the fallback; it blocks extraction
+actually running.
