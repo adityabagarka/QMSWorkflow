@@ -16,7 +16,11 @@ export default async function RfqStep({ params }: { params: { id: string } }) {
 
   return (
     <main className="shell">
-      <Masthead meta={session.email} />
+      <Masthead
+        user={session}
+        dealTitle={header.customer_name}
+        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
+      />
       <DealShell
         deal={header}
         currentPhase={5}

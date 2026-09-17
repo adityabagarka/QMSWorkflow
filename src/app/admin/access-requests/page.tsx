@@ -39,7 +39,7 @@ export default async function AccessPage() {
 
   return (
     <main className="shell">
-      <Masthead meta={`${session.email} · ${session.role ? ROLE_LABELS[session.role] : ''}`} />
+      <Masthead user={session} />
 
       <section className="section">
         <p className="eyebrow">Administration</p>

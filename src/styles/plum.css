@@ -3,41 +3,58 @@
  *
  * This is the INTERNAL app register: the editorial voice adapted to a denser,
  * utility-first layout. The cream field, hairline dividers and
- * plum-red-for-emphasis-only discipline still hold — a dashboard here should
- * not drift into a generic grey SaaS grid. The customer-facing quote page (M6)
- * uses the full editorial register instead.
+ * plum-red-for-emphasis discipline still hold — a dashboard here should not
+ * drift into a generic grey SaaS grid. The customer-facing quote page (M6) uses
+ * the full editorial register instead.
  *
- * GT Alpina and Passenger Sans are licensed and not yet in the repository, so
- * the stacks below fall through to Georgia and system-ui. Drop the woff2 files
- * into src/styles/fonts/ and add the @font-face rules; nothing else changes.
+ * ── Kept in step with plum-quotes ──────────────────────────────────────────
+ * The names, values and scales below are the same ones as
+ * `plum-quotes/src/app/globals.css`, which is the deployed reference
+ * implementation of this design system. Several values had drifted here by a
+ * shade or two (cream-deep, both fg tints, the two hover reds, the second
+ * hairline) — small enough not to be noticed on one screen, large enough that
+ * the two apps looked subtly unlike each other side by side, which is exactly
+ * the seam a later merge would have to unpick. They are now identical.
+ *
+ * Two things are deliberately NOT the same, and both are additions rather than
+ * changes: the `--gain-*` triplet below, and the fact that this file expresses
+ * the system as classes in one stylesheet rather than inline styles on shared
+ * components. Anything else that differs is drift and should be fixed here.
  */
 
 :root {
-  /* Surface */
+  /* Surfaces — warm cream field holds everything */
   --cream: #fffaf2;
-  --cream-deep: #fdf4e8;
-  --cream-warm: #fbf0e1;
+  --cream-deep: #fbf1e4;
+  --cream-warm: #f7e9d8;
 
-  /* Emphasis — one red, doing all the work */
+  /* Plum red — the primary emphasis colour */
   --plum-red: #ff4052;
-  --plum-red-deep: #e0303f;
-  --plum-red-press: #c22736;
+  --plum-red-deep: #e22c3d;
+  --plum-red-press: #c11f2f;
 
-  /* Ink */
+  /* Foreground — deep aubergine */
   --fg-1: #3a0e2b;
-  --fg-2: #6b4159;
-  --fg-muted: #8f6e81;
+  --fg-2: #6e4560;
+  --fg-muted: #9c7c90;
   --fg-on-red: #fffaf2;
 
-  /* Hairlines */
+  /* Hairlines / borders */
   --line-lavender: #c7b1c0;
-  --line-lavender-2: #ddcbd6;
+  --line-lavender-2: #dbcad4;
+
+  /* Severity / intensity scale (low -> high) */
+  --sev-blush: #ffe7ea;
+  --sev-pink: #ffd9dc;
+  --sev-coral: #ff9fa8;
+  --sev-red: #ff4052;
 
   /*
-   * Change direction. A deliberate widening of the palette: the design system
-   * gives plum-red all the emphasis work, but enhancement and restriction move
-   * price in opposite directions, and one colour cannot say which way. The
-   * green is muted and warm so it sits on cream rather than shouting off it.
+   * Change direction. A deliberate widening of the palette beyond red and its
+   * tints: the design system gives plum-red all the emphasis work, but an
+   * enhancement and a restriction move price in opposite directions, and one
+   * colour cannot say which way. The green is muted and warm so it sits on
+   * cream rather than shouting off it.
    *
    * Colour never carries the meaning alone — every marked cell also has an
    * arrow and a text label, for anyone who cannot distinguish the two and for
@@ -47,15 +64,104 @@
   --gain-ink: #2f5d3a;
   --gain-line: #8fb193;
 
-  /* Severity / intensity, low to high */
-  --sev-blush: #ffe7ea;
-  --sev-pink: #ffd9dc;
-  --sev-coral: #ff9fa8;
+  /* Semantic aliases */
+  --bg-page: var(--cream);
+  --surface-card: var(--cream-deep);
+  --surface-band: var(--cream-warm);
+  --text-body: var(--fg-1);
+  --text-secondary: var(--fg-2);
+  --text-muted: var(--fg-muted);
+  --text-eyebrow: var(--plum-red);
+  --border-hairline: var(--line-lavender);
+  --border-hairline-soft: var(--line-lavender-2);
+  --accent: var(--plum-red);
+  --accent-hover: var(--plum-red-deep);
+  --accent-press: var(--plum-red-press);
+  --link: var(--plum-red);
+  --link-hover: var(--plum-red-deep);
 
-  --font-display: 'GT Alpina', Georgia, serif;
-  --font-sans: 'Passenger Sans', system-ui, sans-serif;
+  /*
+   * Typography. Newsreader and Hanken Grotesk substitute for the licensed
+   * GT Alpina and Passenger Sans, self-hosted through next/font (see
+   * src/app/layout.tsx) — the same substitution, from the same two families,
+   * as the deployed app. The Georgia/system-ui tails are the flash-of-unstyled
+   * fallback only.
+   */
+  --font-display: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-hanken), system-ui, sans-serif;
 
-  --shadow-cta: 0 2px 12px rgba(58, 14, 43, 0.08);
+  --type-hero: clamp(38px, 6vw, 64px);
+  --type-h2: clamp(26px, 3.5vw, 40px);
+  --type-h3: clamp(18px, 2vw, 24px);
+  --type-pullquote: clamp(18px, 2.6vw, 28px);
+  --type-stat: clamp(36px, 5vw, 64px);
+  --type-serif-body: 18px;
+  --type-body: 16px;
+  --type-eyebrow: 12px;
+  --type-caption: 11px;
+  --type-ui: 15px;
+
+  /*
+   * The internal register runs tighter than the marketing one: a deal screen
+   * carries far more per page than a landing page does, and the scale above is
+   * sized for the latter. These are the dense counterparts, used by the app
+   * chrome — headings on a wizard step, a figure in the summary block. They are
+   * additions to the scale, not replacements for it.
+   */
+  --type-h1-dense: clamp(24px, 3vw, 32px);
+  --type-h2-dense: clamp(20px, 2.2vw, 26px);
+  --type-h3-dense: clamp(16px, 1.8vw, 19px);
+  --type-stat-dense: clamp(22px, 2.6vw, 28px);
+  --type-table: 12.5px;
+
+  --w-light: 300;
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  --track-display: -0.03em;
+  --track-h2: -0.04em;
+  --track-eyebrow: 0.06em;
+  --track-caption: 0.08em;
+
+  --lh-tight: 1.05;
+  --lh-heading: 1.12;
+  --lh-serif-body: 1.6;
+  --lh-body: 1.55;
+
+  /* Spacing, radius, shadow, layout */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  --gutter: clamp(20px, 5vw, 64px);
+
+  --col-longform: 760px;
+  --col-marketing: 1200px;
+
+  --radius-btn: 1.5px;
+  --radius-chip: 0;
+  --radius-card: 7px;
+  --radius-pill: 999px;
+
+  --hairline: 1px;
+  --hairline-thin: 0.5px;
+
+  --shadow-cta: 0 8px 28px -10px rgba(58, 14, 43, 0.28);
+  --shadow-card: 0 2px 14px -8px rgba(58, 14, 43, 0.22);
+  --shadow-raised: 0 14px 40px -16px rgba(58, 14, 43, 0.3);
+
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
 }
 
 *,
@@ -68,44 +174,71 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: var(--cream);
-  color: var(--fg-1);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
+  background: var(--bg-page);
 }
 
+body {
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--type-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The dense sizes, not --type-hero/h2/h3: those are the marketing register. */
 h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: var(--w-regular);
+  color: var(--fg-1);
+  line-height: var(--lh-heading);
+  text-wrap: balance;
   margin: 0;
 }
 
 h1 {
-  font-size: clamp(28px, 3.5vw, 40px);
-  letter-spacing: -0.04em;
+  font-size: var(--type-h1-dense);
+  letter-spacing: var(--track-h2);
+  line-height: var(--lh-tight);
 }
 
 h2 {
-  font-size: clamp(22px, 2.4vw, 28px);
-  letter-spacing: -0.03em;
+  font-size: var(--type-h2-dense);
+  letter-spacing: var(--track-display);
 }
 
 h3 {
-  font-size: clamp(18px, 2vw, 22px);
+  font-size: var(--type-h3-dense);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+em {
+  font-style: italic;
 }
 
 a {
-  color: var(--plum-red);
+  color: var(--link);
   text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 a:hover {
-  color: var(--plum-red-deep);
+  color: var(--link-hover);
   text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -116,13 +249,41 @@ a:hover {
   padding: 0 clamp(20px, 4vw, 64px);
 }
 
+/*
+ * The app header. Full-bleed hairline, contents on the page column — the same
+ * shape as the step footer, so the page is bracketed top and bottom by the same
+ * device.
+ */
 .masthead {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 20px 0 16px;
-  border-bottom: 1px solid var(--line-lavender);
+  padding: 14px 0;
+  position: relative;
+}
+
+.masthead::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  height: 1px;
+  background: var(--line-lavender);
+}
+
+.masthead__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  color: inherit;
+}
+
+.masthead__left:hover {
+  text-decoration: none;
 }
 
 .masthead__logo {
@@ -139,18 +300,94 @@ a:hover {
   font-family: var(--font-display);
   font-size: 19px;
   color: var(--plum-red);
-  letter-spacing: -0.03em;
+  letter-spacing: var(--track-display);
 }
 
-.masthead__meta {
-  font-size: 13px;
+/* Separates the product from the thing being worked on. */
+.masthead__divider {
+  width: 1px;
+  height: 22px;
+  flex: none;
+  background: var(--line-lavender);
+}
+
+.masthead__deal {
+  min-width: 0;
+}
+
+.masthead__deal-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.masthead__deal-ref {
+  display: block;
+  font-size: var(--type-caption);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--fg-muted);
+  margin-top: 2px;
 }
 
 .masthead__right {
   display: flex;
-  align-items: baseline;
-  gap: 16px;
+  align-items: center;
+  gap: 18px;
+}
+
+.masthead__nav {
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--plum-red);
+}
+
+.masthead__user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line-lavender);
+}
+
+/* An initialled disc, as in plum-quotes: it gives the block something to read
+   at a glance without spelling out an address nobody needs to see again. */
+.masthead__avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--sev-blush);
+  border: 1px solid var(--plum-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: var(--w-medium);
+  color: var(--plum-red);
+}
+
+.masthead__name {
+  font-size: 12.5px;
+  color: var(--fg-1);
+  line-height: 1.2;
+}
+
+/* The one thing in this block that changes what you can do, so it is said
+   plainly rather than run into the address. */
+.masthead__role {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  line-height: 1.4;
 }
 
 /* A quiet control: needed often enough to be always present, not important
@@ -160,7 +397,7 @@ a:hover {
   background: none;
   padding: 0;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 11px;
   color: var(--fg-muted);
   cursor: pointer;
   text-decoration: underline;
@@ -173,12 +410,12 @@ a:hover {
 
 /* An uppercase red eyebrow opens every section. */
 .eyebrow {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--type-eyebrow);
+  font-weight: var(--w-medium);
   line-height: 1.2;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--plum-red);
+  letter-spacing: var(--track-eyebrow);
+  color: var(--text-eyebrow);
   margin: 0 0 10px;
 }
 
@@ -242,14 +479,18 @@ tbody tr:last-child td {
 
 /* Status chips: uppercase sans on a tinted fill, hairline red border, no
    rounding. The four-step severity scale carries urgency. */
+/* The severity chip, matching plum-quotes' ds/SeverityChip: uppercase sans on
+   a tinted fill, a half-pixel red hairline, and no rounding at all. */
 .chip {
   display: inline-block;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 4px 9px;
+  font-size: var(--type-caption);
+  font-weight: var(--w-semibold);
+  line-height: 1.3;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border: 0.5px solid var(--plum-red);
+  letter-spacing: var(--track-caption);
+  border: var(--hairline-thin) solid var(--plum-red);
+  border-radius: var(--radius-chip);
   background: var(--sev-blush);
   color: var(--fg-1);
   white-space: nowrap;
@@ -274,29 +515,42 @@ tbody tr:last-child td {
   color: var(--fg-muted);
 }
 
-/* Buttons: lowercase labels, plum-red fill, barely any radius. */
+/*
+ * The border is declared on both variants rather than only on the outlined one,
+ * so primary and secondary occupy exactly the same box and a row of mixed
+ * buttons sits on one line. This is how plum-quotes' ds/Button does it.
+ */
 .button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--type-ui);
+  font-weight: var(--w-medium);
   text-transform: lowercase;
-  padding: 10px 18px;
-  border: 0;
-  border-radius: 1.5px;
+  line-height: 1.1;
+  padding: 11px 22px;
+  border: 1px solid var(--plum-red);
+  border-radius: var(--radius-btn);
   background: var(--plum-red);
   color: var(--fg-on-red);
   box-shadow: var(--shadow-cta);
   cursor: pointer;
-  transition: background 180ms ease-out;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 .button:hover {
   background: var(--plum-red-deep);
+  border-color: var(--plum-red-deep);
+  color: var(--fg-on-red);
+  text-decoration: none;
 }
 
 .button:active {
   background: var(--plum-red-press);
+  border-color: var(--plum-red-press);
 }
 
 .button:disabled {
@@ -442,85 +696,6 @@ input[type='text'] {
   color: var(--plum-red);
 }
 
-/* Company identity as one block: name, then what the company is, with the date
-   the deal turns on set against it. */
-.deal-hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 40px;
-  padding: 12px 0 20px;
-}
-
-.deal-hero h1 {
-  font-size: clamp(26px, 3.4vw, 36px);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-}
-
-.deal-hero__what {
-  font-size: 13.5px;
-  color: var(--fg-muted);
-  margin: 7px 0 0;
-}
-
-.deal-hero__start {
-  text-align: right;
-  flex: 0 0 auto;
-}
-
-.deal-hero__start .label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--fg-muted);
-}
-
-.deal-hero__start .date {
-  font-family: var(--font-display);
-  font-size: 27px;
-  letter-spacing: -0.02em;
-  margin-top: 2px;
-}
-
-/* A strip of the four numbers an RM checks first. */
-.facts {
-  display: flex;
-  border-top: 1px solid var(--line-lavender);
-  border-bottom: 1px solid var(--line-lavender);
-  flex-wrap: wrap;
-}
-
-.facts__item {
-  flex: 1 1 180px;
-  padding: 14px 18px 13px;
-  border-right: 0.5px solid var(--line-lavender-2);
-}
-
-.facts__item:last-child {
-  border-right: 0;
-}
-
-.facts__label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--fg-muted);
-}
-
-.facts__value {
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: -0.02em;
-  margin-top: 3px;
-}
-
-/* The one place GST is mentioned: directly under the figure it qualifies. */
-.facts__note {
-  font-size: 11.5px;
-  color: var(--fg-muted);
-}
-
 .bar {
   height: 3px;
   width: 140px;
@@ -535,53 +710,108 @@ input[type='text'] {
 }
 
 /* Step navigation inside a stage. */
+/*
+ * The step bar, matching plum-quotes' StepNav: a numbered circle per step with
+ * a hairline connector running between them.
+ *
+ * It used to be a row of boxed tabs. The circles are the better read for the
+ * same reason a metro map is: the connector makes the sequence explicit, where
+ * abutting boxes only imply it, and the circle's fill carries three states
+ * (done, here, not yet) without needing a fourth colour. It is also the shape
+ * the deployed app already uses, and a wizard that looks like a different
+ * product on either side of a handover is the whole problem this pass is
+ * closing.
+ */
 .wiz {
   display: flex;
-  border: 1px solid var(--line-lavender);
-  background: var(--cream-deep);
-  margin: 24px 0 0;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0;
+  margin: 24px 0 8px;
 }
 
-.wiz a {
-  flex: 1 1 120px;
-  padding: 12px 16px;
-  border-right: 0.5px solid var(--line-lavender-2);
-  color: var(--fg-muted);
+.wiz__step {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
 }
 
-.wiz a:last-child {
-  border-right: 0;
+.wiz a,
+.wiz .wiz__locked {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  padding-right: 14px;
+  color: var(--fg-2);
 }
 
 .wiz a:hover {
   text-decoration: none;
+}
+
+.wiz a:hover .wiz__t {
   color: var(--fg-1);
+}
+
+.wiz .wiz__locked {
+  cursor: default;
 }
 
 .wiz__n {
-  font-family: var(--font-display);
-  font-size: 19px;
-  display: block;
-  line-height: 1.1;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  border: 1px solid var(--line-lavender);
+  background: var(--cream);
+  color: var(--fg-muted);
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
 .wiz__t {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  display: block;
-  margin-top: 3px;
-}
-
-.wiz a.is-done {
+  font-size: 12.5px;
+  line-height: 1.35;
   color: var(--fg-2);
+  max-width: 150px;
+  text-wrap: pretty;
 }
 
-.wiz a.is-now {
+/* Behind you: outlined in red, filled with the lightest severity tint. */
+.wiz a.is-done .wiz__n {
+  border-color: var(--plum-red);
   background: var(--sev-blush);
+  color: var(--plum-red);
+}
+
+/* Here: the one solid red mark on the page. */
+.wiz a.is-now .wiz__n {
+  border-color: var(--plum-red);
+  background: var(--plum-red);
+  color: var(--fg-on-red);
+}
+
+.wiz a.is-now .wiz__t {
   color: var(--fg-1);
-  box-shadow: inset 0 -3px 0 var(--plum-red);
+  font-weight: var(--w-medium);
+}
+
+.wiz .wiz__locked .wiz__t {
+  color: var(--fg-muted);
+}
+
+/* Drawn level with the middle of the circles it joins. */
+.wiz__link {
+  flex: 1;
+  height: 1px;
+  background: var(--line-lavender-2);
+  margin: 15px 14px 0 0;
+  min-width: 16px;
 }
 
 /*
@@ -630,17 +860,6 @@ input[type='text'] {
 .step__aside + .step__aside,
 .aside-block + .aside-block {
   margin-top: 30px;
-}
-
-.wiz__locked {
-  flex: 1 1 120px;
-  padding: 12px 16px;
-  border-right: 0.5px solid var(--line-lavender-2);
-  color: var(--line-lavender);
-}
-
-.wiz__locked:last-child {
-  border-right: 0;
 }
 
 /* Document list in the aside. */
@@ -790,9 +1009,24 @@ input[type='text'] {
  * reading an option's term against the wrong column, which is the single most
  * expensive misreading available on this screen.
  */
+/*
+ * One bounded scroller, both axes, holding the whole grid.
+ *
+ * This is the shape plum-quotes' ledger uses, and the reason is `position:
+ * sticky`: it only ever holds within the scroll container it is declared in.
+ * Before this the table scrolled sideways inside the box but downwards with the
+ * PAGE, so the `top: 0` on the header row had no container to stick to and the
+ * option names simply scrolled away — which on a table whose whole job is
+ * reading a value against the right option is the one failure that matters.
+ *
+ * The height is capped rather than fitted so the step's own footer and the
+ * policy panel beside it stay on screen while the table is being read.
+ */
 .terms {
   border: 1px solid var(--line-lavender);
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 72vh;
+  overscroll-behavior: contain;
 }
 
 .terms__grid {
@@ -804,15 +1038,18 @@ input[type='text'] {
   display: contents;
 }
 
+/* Red rule under the header, as on the ledger: it reads as the table's own
+   horizon rather than as one more hairline among the row borders. */
 .terms__head > div {
   position: sticky;
   top: 0;
   background: var(--cream);
   padding: 12px 16px;
-  border-bottom: 1px solid var(--line-lavender);
-  font-size: 10.5px;
+  border-bottom: 1px solid var(--plum-red);
+  font-size: var(--type-caption);
+  font-weight: var(--w-medium);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-eyebrow);
   color: var(--fg-muted);
   z-index: 2;
 }
@@ -821,6 +1058,7 @@ input[type='text'] {
   display: block;
   font-family: var(--font-sans);
   font-size: 13.5px;
+  font-weight: var(--w-regular);
   text-transform: none;
   letter-spacing: 0;
   color: var(--fg-1);
@@ -828,19 +1066,47 @@ input[type='text'] {
 }
 
 /*
- * Section headers. Serif, heavier, wider-set and on the warm band — so the eye
- * reads them as structure rather than as another term. The term rows
- * underneath stay deliberately quiet: highlighting every row would leave
- * nothing to differentiate.
+ * The benefit label column stays put while the option columns scroll.
+ *
+ * Taken from the comparison table in plum-quotes. With expiring plus several
+ * options the grid scrolls sideways, and losing the row label mid-scroll is
+ * precisely how a value gets read against the wrong benefit. Sticky only holds
+ * within the scroll container it is declared in, which is the other reason the
+ * whole table is a single grid inside a single scroller.
+ */
+.terms__cell--label,
+.terms__head > div:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  border-right: 1px solid var(--line-lavender);
+}
+
+.terms__head > div:first-child {
+  z-index: 3;
+}
+
+/*
+ * Section headers, as the red eyebrow the design system uses everywhere else to
+ * open a section — not the bold serif band they were.
+ *
+ * The band was louder than the information warranted. In a table where the
+ * meaningful marks are the changed cells, a heavy header competes with them for
+ * the same attention, and plum-quotes' comparison makes the opposite choice:
+ * quiet uppercase red on the plain cream field, with a hairline above. The
+ * structure still reads, because nothing else on the table is red and uppercase.
+ *
+ * The caret and the count stay: unlike the reference implementation these
+ * sections collapse, and a click target needs to look like one.
  */
 .terms__section {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
-  background: var(--cream-warm);
-  border-top: 1px solid var(--line-lavender);
+  gap: 12px;
+  padding: 16px 16px 7px;
+  background: var(--cream);
+  border-top: 1px solid var(--line-lavender-2);
   cursor: pointer;
   width: 100%;
   text-align: left;
@@ -855,33 +1121,46 @@ input[type='text'] {
 }
 
 .terms__caret {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--plum-red);
-  width: 10px;
-  flex: 0 0 10px;
+  width: 9px;
+  flex: 0 0 9px;
 }
 
+/*
+ * Sticks left with the label column, so scrolling out to option 4 does not
+ * leave you looking at rows belonging to a section you can no longer name.
+ */
 .terms__section-name {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--font-sans);
+  font-size: var(--type-caption);
+  font-weight: var(--w-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--plum-red);
   flex: 1;
+  position: sticky;
+  left: 16px;
 }
 
 .terms__section-count {
-  font-size: 11.5px;
+  font-size: var(--type-caption);
   color: var(--fg-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-eyebrow);
+  white-space: nowrap;
 }
 
+/* 12.5px, matching the ledger's rows: this table is read across, and a smaller
+   face fits more of a term on one line before it wraps. */
 .terms__cell {
-  padding: 10px 16px;
-  font-size: 13.5px;
+  padding: 9px 16px;
+  font-size: var(--type-table);
+  line-height: 1.4;
+  color: var(--fg-1);
   background: var(--cream-deep);
-  border-top: 0.5px solid var(--line-lavender-2);
-  border-left: 0.5px solid var(--line-lavender-2);
+  border-top: var(--hairline-thin) solid var(--line-lavender-2);
+  border-left: var(--hairline-thin) solid var(--line-lavender-2);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -889,6 +1168,7 @@ input[type='text'] {
 .terms__cell--label {
   border-left: 0;
   color: var(--fg-2);
+  background: var(--cream-deep);
 }
 
 /*
@@ -912,9 +1192,9 @@ input[type='text'] {
 .terms__mark {
   display: block;
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: var(--w-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-caption);
   margin-top: 3px;
 }
 
@@ -1021,13 +1301,17 @@ input[type='text'] {
 }
 
 @media (max-width: 640px) {
-  .deal-hero {
-    flex-direction: column;
-    gap: 16px;
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .deal-hero__start {
-    text-align: left;
+  /* The three figures wrap under the name rather than squeezing beside it. */
+  .summary__stats {
+    flex-wrap: wrap;
+  }
+
+  .summary__stat:first-child {
+    padding-left: 0;
   }
 
   .stage {
@@ -1167,25 +1451,25 @@ select.ff__control {
 /*
  * One block carrying everything identifying about the deal, above the steps.
  *
- * Previously this was a name, then a four-column strip of mostly empty figures,
- * spread over a great deal of height for very little information. Rows are
- * denser and read faster, and the tint lets the deal type be recognised before
- * anything is read.
+ * Left: who the company is, then the incumbent programme as rows. Right: the
+ * three figures that matter on every screen — lives, expiring premium and when
+ * cover starts — set large, because they are consulted constantly and should
+ * never need hunting for.
  */
 .summary {
   border: 1px solid var(--line-lavender);
-  padding: 20px 24px;
+  padding: 16px 20px;
   margin: 12px 0 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  gap: 24px 40px;
+  grid-template-columns: minmax(0, 1.5fr) auto;
+  gap: 16px 32px;
   align-items: start;
 }
 
 /*
- * Tinted by deal type, so a rollover and a renewal are distinguishable at a
- * glance. Deliberately faint: this sits behind the most important text on the
- * page and is meant to be recognised rather than noticed.
+ * Tinted by deal type, so a rollover and a renewal are recognisable before
+ * anything is read. Deliberately faint: this sits behind the most important
+ * text on the page.
  */
 .summary--rollover {
   background: rgba(255, 64, 82, 0.045);
@@ -1199,41 +1483,22 @@ select.ff__control {
 
 .summary__name {
   font-family: var(--font-display);
-  font-size: clamp(24px, 3vw, 32px);
+  font-size: var(--type-h1-dense);
   line-height: 1.08;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--track-h2);
   margin: 0;
 }
 
 .summary__what {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--fg-muted);
-  margin: 6px 0 0;
+  margin: 5px 0 0;
 }
 
-.summary__start {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.summary__start .label {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--fg-muted);
-}
-
-.summary__start .date {
-  font-family: var(--font-display);
-  font-size: 21px;
-  letter-spacing: -0.02em;
-}
-
-/* Incumbent programme, row-wise: label left, value right, hairline between. */
+/* Incumbent programme, immediately under the name it belongs to. */
 .summary__rows {
-  margin: 0;
+  margin: 12px 0 0;
+  max-width: 380px;
 }
 
 .summary__rows div {
@@ -1241,8 +1506,8 @@ select.ff__control {
   justify-content: space-between;
   align-items: baseline;
   gap: 16px;
-  padding: 7px 0;
-  border-bottom: 0.5px solid var(--line-lavender-2);
+  padding: 4px 0;
+  border-bottom: var(--hairline-thin) solid var(--line-lavender-2);
 }
 
 .summary__rows div:last-child {
@@ -1259,17 +1524,99 @@ select.ff__control {
 
 .summary__rows dd {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--fg-1);
   text-align: right;
-  min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.summary__gst {
-  font-size: 11px;
-  color: var(--fg-muted);
+/*
+ * The three constants, as figures rather than fields.
+ *
+ * `align-items: start` rather than stretch, so the columns hang from a common
+ * top edge — their labels and figures line up across all three regardless of
+ * the countdown chip hanging below the third.
+ */
+.summary__stats {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+}
+
+/*
+ * The separator is drawn as a pseudo-element with an explicit height rather
+ * than as a border on the column, because a border runs the full height of
+ * whatever it is on: with the chip below the third figure, one rule would have
+ * been visibly longer than the other, and both would have run past the content
+ * they divide. This one is exactly as tall as the label-and-figure pair it
+ * sits between.
+ */
+.summary__stat {
+  position: relative;
+  padding: 0 20px;
+  min-width: 108px;
+}
+
+.summary__stat + .summary__stat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 1px;
+  height: 44px;
+  width: 1px;
+  background: var(--line-lavender-2);
+}
+
+.summary__stat:first-child {
+  padding-left: 0;
+}
+
+.summary__stat:last-child {
+  padding-right: 0;
+}
+
+.summary__stat .label {
   display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+
+.summary__stat .figure {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--type-stat-dense);
+  letter-spacing: var(--track-display);
+  line-height: 1.15;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.summary__stat .under {
+  display: block;
+  margin-top: 5px;
+}
+
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary__stats {
+    flex-wrap: wrap;
+    gap: 16px 0;
+  }
+
+  /* Wrapped onto its own line, a column has nothing to its left to divide. */
+  .summary__stat::before {
+    display: none;
+  }
+
+  .summary__stat {
+    padding-left: 0;
+    padding-right: 28px;
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1288,14 +1635,33 @@ select.ff__control {
   position: sticky;
   bottom: 0;
   margin-top: 44px;
-  padding: 14px 0;
+  padding: 16px 0;
   background: var(--cream);
-  border-top: 1px solid var(--line-lavender);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   z-index: 3;
+}
+
+/*
+ * The rule above the footer is full-bleed while the buttons stay in the page
+ * column, which is how plum-quotes' StepFooter reads: the hairline is a
+ * horizon the page ends at, and stopping it short of the window edge makes it
+ * look like a box that failed to reach.
+ *
+ * Drawn as a pseudo-element rather than by moving the footer outside .shell,
+ * because it has to stay inside the sticky context to stick.
+ */
+.stepfoot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  height: 1px;
+  background: var(--line-lavender-2);
 }
 
 .stepfoot__mid {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Field, FieldRow, Input, Select } from '@/components/form';
 import { looksLikeGstin, lookupGstin, sampleGstins } from '@/lib/cases/gstin';
+import { yearsSince } from '@/lib/format';
 import { saveCompany, type SaveResult } from './actions';
 
 function SaveButton() {
@@ -56,9 +57,7 @@ export function CompanyForm({
     setLookup('found');
   }
 
-  const years = doi
-    ? Math.floor((Date.now() - new Date(doi).getTime()) / (365.25 * 86_400_000))
-    : null;
+  const years = yearsSince(doi);
 
   return (
     <form action={submit}>

@@ -28,9 +28,18 @@ policy being quoted. Screens lead with it and count down to it.
 `cases.policy_expiry_date` remains, because §11's reminder cascade keys off when
 the current programme ends, but it is no longer what anyone reads first.
 
-**Premiums exclude GST, said once,** against the figure, by the component that
-renders it. `GST_NOTE` in `src/lib/format.ts` exists so there is one place to
-change it and no temptation to repeat it.
+**Premiums exclude GST, said once.** `GST_INPUT_HINT` in `src/lib/format.ts` is
+shown where somebody TYPES a premium, and once on the comparison table. It is
+not repeated wherever a figure is displayed — a caption on every figure trains
+people to stop reading it.
+
+**Every date and time is India time,** pinned in `src/lib/format.ts` and in the
+database (migration 0025). The machines all run on GMT, which is 5½ hours
+behind; see `RECONCILIATION.md` §2.
+
+**The design language is kept in step with `plum-quotes`.** Tokens, fonts,
+header, step bar, footer and the comparison table all follow the deployed app —
+see `RECONCILIATION.md` for what moved and why.
 
 **No helper text explaining the system to itself.** The row-level security
 model, the phase numbering and the storage layout are implementation. A user
@@ -43,9 +52,17 @@ container; sections span all of them. A grid per section would drift as sections
 open and close, and a value read against the wrong column means an insurer
 quoting the wrong cover.
 
-**Sections are unmistakably not terms**: bold serif at 18px on the warm band,
-against 13.5px sans on cream-deep for the rows beneath. The rows stay quiet on
-purpose — highlighting each one would leave nothing to distinguish.
+**One bounded scroller, both axes.** A frozen row or column only holds inside
+the box that scrolls, so the header row, the benefit column and the corner where
+they meet all live in one capped-height container. Before this the table
+scrolled sideways in its box but downwards with the page, and the header row
+quietly scrolled away.
+
+**Sections read as eyebrows, not banners**: uppercase red at 11px on plain
+cream, the same device that opens every other section in the system. A heavy
+band competed with the changed cells for the same attention. The caret and the
+count stay, because these sections collapse and a click target needs to look
+like one.
 
 **Options are columns, numbered from 1.** Option 1 is the expiring terms
 unchanged and stores no rows at all, so it cannot drift from them. Options 2

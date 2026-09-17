@@ -127,7 +127,11 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
 
   return (
     <main className="shell shell--wide">
-      <Masthead meta={session.email} />
+      <Masthead
+        user={session}
+        dealTitle={header.customer_name}
+        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
+      />
 
       <DealShell
         deal={header}

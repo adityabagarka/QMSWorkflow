@@ -21,7 +21,8 @@
     "db:seed:synthetic": "tsx scripts/seed-synthetic.ts",
     "test:parse": "tsx scripts/__tests__/parse-connection-string.ts",
     "db:check": "tsx scripts/check-connection.ts",
-    "test:routes": "tsx scripts/__tests__/wizard-routes.ts"
+    "test:routes": "tsx scripts/__tests__/wizard-routes.ts",
+    "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

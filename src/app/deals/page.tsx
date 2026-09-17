@@ -34,7 +34,7 @@ export default async function DealsPage() {
 
   return (
     <main className="shell">
-      <Masthead meta={session.email} />
+      <Masthead user={session} />
 
       <section className="section">
         <div className="section__head">

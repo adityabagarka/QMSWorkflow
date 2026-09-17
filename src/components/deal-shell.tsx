@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { STAGES, stageHref } from '@/lib/cases/phases';
 import {
-  GST_NOTE,
   coverStartChip,
   describeCompany,
   formatCount,
@@ -79,39 +78,46 @@ export function DealShell({
           <p className="summary__what">
             {describeCompany([deal.entity_type, deal.industry, deal.location])}
           </p>
-          <div className="summary__start">
-            <span className="label">Cover starts</span>
-            <span className="date">{formatDate(deal.cover_start_date)}</span>
-            <span className={chip.className}>{chip.label}</span>
-          </div>
+
+          <dl className="summary__rows">
+            <div>
+              <dt>Incumbent insurer</dt>
+              <dd>{deal.insurer_name ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>Incumbent broker</dt>
+              <dd>{deal.broker_name ?? '—'}</dd>
+            </div>
+          </dl>
         </div>
 
-        <dl className="summary__rows">
-          <div>
-            <dt>Incumbent insurer</dt>
-            <dd>{deal.insurer_name ?? '—'}</dd>
+        {/*
+          The three figures consulted on every screen, set large so they never
+          need hunting for. No GST note here: premiums exclude GST throughout,
+          which is stated where a figure is entered and once on the comparison,
+          not repeated wherever one is displayed.
+        */}
+        <div className="summary__stats">
+          <div className="summary__stat">
+            <span className="label">Lives</span>
+            <span className="figure">{deal.lives > 0 ? formatCount(deal.lives) : '—'}</span>
           </div>
-          <div>
-            <dt>Incumbent broker</dt>
-            <dd>{deal.broker_name ?? '—'}</dd>
+          <div className="summary__stat">
+            <span className="label">Expiring premium</span>
+            <span className="figure">{formatRupees(deal.expiring_premium)}</span>
           </div>
-          <div>
-            <dt>Lives</dt>
-            <dd>{deal.lives > 0 ? formatCount(deal.lives) : '—'}</dd>
+          <div className="summary__stat">
+            <span className="label">Cover starts</span>
+            <span className="figure">{formatDate(deal.cover_start_date)}</span>
+            <span className="under">
+              <span className={chip.className}>{chip.label}</span>
+            </span>
           </div>
-          <div>
-            <dt>Expiring premium</dt>
-            <dd>
-              {formatRupees(deal.expiring_premium)}
-              {/* The one place GST is qualified, against the figure it applies to. */}
-              <span className="summary__gst">{GST_NOTE}</span>
-            </dd>
-          </div>
-        </dl>
+        </div>
       </section>
 
       <nav className="wiz">
-        {STAGES.map((s) => {
+        {STAGES.map((s, i) => {
           const reachable = s.phase <= maxReachedPhase;
           const className =
             s.phase === currentPhase ? 'is-now' : s.phase < currentPhase ? 'is-done' : undefined;
@@ -122,14 +128,18 @@ export function DealShell({
             </>
           );
 
-          return reachable ? (
-            <Link key={s.phase} href={stageHref(deal.id, s.phase)} className={className}>
-              {body}
-            </Link>
-          ) : (
-            <span key={s.phase} className="wiz__locked">
-              {body}
-            </span>
+          return (
+            <div key={s.phase} className="wiz__step">
+              {reachable ? (
+                <Link href={stageHref(deal.id, s.phase)} className={className}>
+                  {body}
+                </Link>
+              ) : (
+                <span className="wiz__locked">{body}</span>
+              )}
+              {/* The connector belongs between steps, so the last one has none. */}
+              {i < STAGES.length - 1 ? <span className="wiz__link" /> : null}
+            </div>
           );
         })}
       </nav>

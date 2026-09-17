@@ -10,7 +10,7 @@ export default async function NewDealPage() {
 
   return (
     <main className="shell">
-      <Masthead meta={session.email} />
+      <Masthead user={session} />
 
       <section className="section">
         <p className="eyebrow">New rollover deal</p>

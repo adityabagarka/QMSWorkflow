@@ -12,7 +12,7 @@ export default async function PendingPage() {
 
   return (
     <main className="shell">
-      <Masthead meta={session.email} />
+      <Masthead user={session} />
 
       <section className="section">
         <p className="eyebrow">{suspended ? 'Access suspended' : 'Awaiting approval'}</p>

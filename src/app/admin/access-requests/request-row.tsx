@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { decideUserAccess, type DecisionResult } from './actions';
 import { ROLE_LABELS, type Role } from '@/lib/auth/roles';
+import { daysUntil, formatDate } from '@/lib/format';
 
 const ASSIGNABLE_ROLES = Object.keys(ROLE_LABELS) as Role[];
 
@@ -26,9 +27,9 @@ export function RequestRow({
   // §15 reserves Super Admin to Super Admins; an Admin is not offered it.
   const roles = ASSIGNABLE_ROLES.filter((r) => canGrantSuperAdmin || r !== 'super_admin');
 
-  const waitingDays = Math.floor(
-    (Date.now() - new Date(requestedAt).getTime()) / (1000 * 60 * 60 * 24),
-  );
+  // Negated because daysUntil looks forward and this looks back; both count
+  // calendar days in India rather than 24-hour blocks off the server clock.
+  const waitingDays = Math.max(0, -(daysUntil(requestedAt) ?? 0));
 
   return (
     <tr>
@@ -38,13 +39,7 @@ export function RequestRow({
           {email}
         </div>
       </td>
-      <td className="cell-muted">
-        {new Date(requestedAt).toLocaleDateString('en-GB', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })}
-      </td>
+      <td className="cell-muted">{formatDate(requestedAt)}</td>
       <td>
         {/* The severity scale carries waiting time, so a request that has been
             sitting for a fortnight reads differently from one raised today. */}

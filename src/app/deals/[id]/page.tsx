@@ -6,6 +6,7 @@ import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
+import { formatDateTime } from '@/lib/format';
 import { CompanyForm } from './company-form';
 
 /** Step 1 — who we are quoting for. */
@@ -47,7 +48,11 @@ export default async function CompanyStep({ params }: { params: { id: string } }
 
   return (
     <main className="shell">
-      <Masthead meta={session.email} />
+      <Masthead
+        user={session}
+        dealTitle={header.customer_name}
+        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
+      />
 
       <DealShell
         deal={header}
@@ -64,14 +69,7 @@ export default async function CompanyStep({ params }: { params: { id: string } }
                 {events.map((e, i) => (
                   <li key={i}>
                     {e.event_type.replace(/_/g, ' ')}
-                    <span className="timeline__when">
-                      {new Date(e.created_at).toLocaleString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
+                    <span className="timeline__when">{formatDateTime(e.created_at)}</span>
                   </li>
                 ))}
               </ul>
