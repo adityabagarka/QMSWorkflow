@@ -3,7 +3,7 @@
 -- role and manager assignment.
 
 begin;
-select plan(20);
+select plan(21);
 
 create temporary table t (who text primary key, id uuid default gen_random_uuid());
 insert into t (who) values ('admin'),('super'),('mgr'),('newbie'),('outsider'),('boot');
@@ -11,13 +11,25 @@ insert into t (who) values ('admin'),('super'),('mgr'),('newbie'),('outsider'),(
 create or replace function tuid(text) returns uuid language sql stable as
   $$ select id from t where who = $1 $$;
 
+-- Fixtures live on a reserved TLD that can never be a real address, and the
+-- domain is allowed only inside this transaction.
+--
+-- This suite previously used @plumhq.com fixtures and the real seeded bootstrap
+-- address. That held until someone actually signed in, at which point the test
+-- collided with a live account and the deploy failed — on a correct refusal by
+-- the code. A test that reads production data is not testing anything
+-- repeatable.
+insert into allowed_email_domains (domain, note)
+values ('example.test', 'Test fixtures only — reserved TLD, never a real address')
+on conflict (domain) do nothing;
+
 grant select on t to authenticated;
 grant execute on function tuid(text) to authenticated;
 
 insert into app_users (id, email, name, role, status) values
-  (tuid('admin'), 'admin@plumhq.com', 'Admin', 'admin',       'active'),
-  (tuid('super'), 'super@plumhq.com', 'Super', 'super_admin', 'active'),
-  (tuid('mgr'),   'mgr@plumhq.com',   'Mgr',   'manager',     'active');
+  (tuid('admin'), 'admin@example.test', 'Admin', 'admin',       'active'),
+  (tuid('super'), 'super@example.test', 'Super', 'super_admin', 'active'),
+  (tuid('mgr'),   'mgr@example.test',   'Mgr',   'manager',     'active');
 
 -- --------------------------------------------------------------------------
 -- Domain allowlist: everything outside it is rejected outright.
@@ -39,7 +51,7 @@ select is((select count(*) from app_users where email = 'attacker@gmail.com')::i
 -- First sign-in creates a pending user and a pending request.
 -- --------------------------------------------------------------------------
 select is(
-  (select status::text from app.provision_signed_in_user(tuid('newbie'), 'newbie@plumhq.com', 'New Bie')),
+  (select status::text from app.provision_signed_in_user(tuid('newbie'), 'newbie@example.test', 'New Bie')),
   'pending',
   'First sign-in lands the user at pending');
 
@@ -54,7 +66,7 @@ select is((select count(*) from audit_log where entity_id = tuid('newbie')::text
 
 -- Signing in again must not queue a second request.
 select lives_ok(
-  format($q$ select app.provision_signed_in_user(%L, 'newbie@plumhq.com', 'New Bie') $q$, tuid('newbie')),
+  format($q$ select app.provision_signed_in_user(%L, 'newbie@example.test', 'New Bie') $q$, tuid('newbie')),
   'Signing in again is idempotent');
 select is((select count(*) from access_requests where requested_by = tuid('newbie'))::int, 1,
   'Repeat sign-in does not queue a duplicate request');
@@ -111,13 +123,24 @@ select throws_ok(
 -- Bootstrap Super Admin (ADR 0002).
 -- --------------------------------------------------------------------------
 reset role;
-select is(
-  (select role::text from app.provision_signed_in_user(tuid('boot'), 'aditya@bagarka.in', 'Aditya')),
-  'super_admin',
-  'The seeded bootstrap address becomes an active Super Admin on first sign-in');
+insert into bootstrap_super_admins (email) values ('boot@example.test');
 
-select is((select count(*) from bootstrap_super_admins where email = 'aditya@bagarka.in' and consumed_at is not null)::int, 1,
+select is(
+  (select role::text from app.provision_signed_in_user(tuid('boot'), 'boot@example.test', 'Boot Strap')),
+  'super_admin',
+  'A pending bootstrap grant makes the signer an active Super Admin on first sign-in');
+
+select is((select count(*) from bootstrap_super_admins where email = 'boot@example.test' and consumed_at is not null)::int, 1,
   'The bootstrap grant is consumed exactly once');
+
+-- The guarantee that fired for real during deploy #4: an email already tied to
+-- an account cannot be claimed by a second sign-in identity. Asserting it turns
+-- that incident into a permanent check.
+select throws_ok(
+  format($q$ select app.provision_signed_in_user(%L, 'boot@example.test', 'Impostor') $q$,
+    gen_random_uuid()),
+  '23505', null,
+  'A different sign-in identity cannot claim an email that already has an account');
 
 select * from finish();
 rollback;

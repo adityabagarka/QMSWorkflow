@@ -62,18 +62,24 @@ create temporary table rpc_ids (who text primary key, id uuid default gen_random
 insert into rpc_ids (who) values ('newbie'), ('approver'), ('mgr');
 grant select on rpc_ids to authenticated;
 
+-- Fixtures on a reserved TLD, allowed only inside this transaction, so they can
+-- never collide with a real account's email. See the note in 020.
+insert into allowed_email_domains (domain, note)
+values ('example.test', 'Test fixtures only — reserved TLD, never a real address')
+on conflict (domain) do nothing;
+
 insert into app_users (id, email, name, role, status)
-select id, who || '@plumhq.com', initcap(who), 'admin'::app.user_role, 'active'
+select id, who || '@example.test', initcap(who), 'admin'::app.user_role, 'active'
 from rpc_ids where who = 'approver';
 insert into app_users (id, email, name, role, status)
-select id, who || '@plumhq.com', initcap(who), 'manager'::app.user_role, 'active'
+select id, who || '@example.test', initcap(who), 'manager'::app.user_role, 'active'
 from rpc_ids where who = 'mgr';
 
 set local role authenticated;
 
 select is(
   (select p.status from public.provision_signed_in_user(
-     (select id from rpc_ids where who = 'newbie'), 'newbie@plumhq.com', 'New Bie') p),
+     (select id from rpc_ids where who = 'newbie'), 'newbie@example.test', 'New Bie') p),
   'pending',
   'public.provision_signed_in_user runs as authenticated and returns pending');
 
