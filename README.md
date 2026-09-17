@@ -35,8 +35,6 @@ Nothing beyond M0 has been started.
   treats as a scalar but which one insurer states per family definition. See
   `docs/decisions/0003-guardrails-import.md`.
 - **M4** needs the workflow orchestrator decision (§18.3, Temporal recommended).
-- **Manager write scope** is implemented conservatively and still unconfirmed.
-  See `docs/decisions/0004-manager-write-scope.md`.
 - **The Plum logo is hotlinked** from `app.plumhq.com` rather than served from
   this app. See the note in `src/components/masthead.tsx`.
 

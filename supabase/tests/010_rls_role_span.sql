@@ -7,7 +7,7 @@
 -- means the guarantee has to be testable without the application present.
 
 begin;
-select plan(47);
+select plan(53);
 
 -- --------------------------------------------------------------------------
 -- Synthetic org (no real PII anywhere — CLAUDE.md).
@@ -126,9 +126,43 @@ select lives_ok(
   $$ update cases set state = 'in_review' where owner_user_id = uid_of('mgr') $$,
   'Manager can transact on their own deal');
 
+-- A Manager transacts across their team as well as on their own deals, at any
+-- depth (§15 as confirmed; see ADR 0004). This is what makes cover during
+-- leave and escalation work without reassigning ownership.
+select is(rows_affected($q$update cases set state = 'mgr_edited' where owner_user_id = uid_of('c1')$q$), 1,
+  'Manager can transact on a direct report''s deal');
+
+select is(rows_affected($q$update cases set state = 'mgr_edited' where owner_user_id = uid_of('c2')$q$), 1,
+  'Manager can transact on every report''s deal, not just one');
+
+-- The boundary still holds: editing rights follow the subtree, not the org.
+select throws_ok(
+  $q$ insert into cases (customer_name, owner_user_id) values ('Outside span', uid_of('c3')) $q$,
+  '42501', null,
+  'Manager cannot create a case for someone outside their subtree');
+
+select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('c3')$q$), 0,
+  'Manager cannot transact on a case outside their subtree');
+
+-- A Manager may hand a deal to anyone in their own team, but not out of it.
+select lives_ok(
+  $q$ update cases set owner_user_id = uid_of('c2') where owner_user_id = uid_of('c1') $q$,
+  'Manager can reassign a deal within their team');
+
+select throws_ok(
+  $q$ update cases set owner_user_id = uid_of('c3') where owner_user_id = uid_of('mgr') $q$,
+  '42501', null,
+  'Manager cannot push a deal outside their own visibility');
+
+-- Put the reassigned deal back, so the assertions below still see the seeded
+-- layout rather than the one this block just rearranged.
+update cases
+   set owner_user_id = uid_of('c1'), state = 'in_review'
+ where customer_name = 'Acme Synthetic Pvt Ltd';
+
 reset role;
-select is((select state from cases where owner_user_id = uid_of('c1')), 'in_review',
-  'sanity: c1 case still carries its own earlier state');
+select is((select count(*) from cases where owner_user_id = uid_of('c3') and state = 'draft')::int, 1,
+  'the case outside the subtree is untouched');
 
 -- ==========================================================================
 -- Head of Department: entire subtree, read-only.
@@ -144,7 +178,7 @@ select throws_ok(
   '42501', null,
   'HoD cannot create a case');
 
-select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('c1')$q$), 0,
+select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('mgr')$q$), 0,
   'HoD update reaches no rows: read-only means read-only');
 
 -- ==========================================================================

@@ -43,29 +43,33 @@ Google's verification review is not required: it applies to sensitive and
 restricted scopes (Gmail, Drive and similar). This system requests only name and
 email, which are non-sensitive, so publishing takes effect immediately.
 
-## Why a dedicated OAuth client
+## OAuth client: shared with the existing quote workflow app
 
-Reusing an existing client from another application would work technically — a
-client can carry several redirect URIs — but is rejected for three reasons.
+**Decided otherwise, deliberately.** The credentials are reused from the
+existing quote workflow app, with separate secrets added for this deployment.
+
+The reasoning given: the two are the same workflow serving different teams for
+different use cases, and the other app's flow is expected to be merged into this
+build later. §1 of the architecture anticipates that direction — renewal deals
+are out of scope for phase 1 with the instruction to "build the architecture so
+these slot in without rework" — so a shared sign-in identity is consistent with
+where this is going, rather than an expedient.
+
+The case against reuse, for the record, since it is worth revisiting at merge
+time:
 
 **The consent screen belongs to the Google Cloud project, not the client.** Its
-app name is what users read at sign-in. Reusing another project's client means
-people signing in to an insurance system holding customer medical data are asked
-to "continue to" an unrelated app. That is precisely the shape of a phishing
-prompt, and it trains people to click past exactly the screen they should read.
+app name is what users read at sign-in. If that name describes the other app,
+people signing in to this one are asked to "continue to" something that is not
+what they opened. Worth checking what the name currently reads as, and setting
+it to something that covers both — the two are merging anyway.
 
 **Shared blast radius.** One leaked or rotated secret takes down both systems at
-once, and this one cannot be casually taken down.
+once. Acceptable while they are converging; a reason to keep the rotation
+procedure written down.
 
 **§16 wants separable credentials.** Vendor and access records form part of the
-SOC 2 / ISO 27001 evidence trail, and access for this system needs to be
-revocable on its own.
-
-If a separate Google Cloud project is genuinely unwanted, the acceptable middle
-ground is a **new OAuth client inside the existing project** — separate client
-ID and secret, so the blast-radius and revocability problems go away. The shared
-consent-screen name remains, so this is only reasonable where that name already
-reads as a neutral Plum-branded sign-in.
-
-Reusing the same client ID and secret across both apps is not recommended in any
-case.
+SOC 2 / ISO 27001 evidence trail. A shared client means access for the two
+systems cannot be revoked independently — which is fine when they are one system,
+and should be settled either way before the compliance review rather than
+discovered during it.
