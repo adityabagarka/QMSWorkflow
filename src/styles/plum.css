@@ -119,6 +119,15 @@ a:hover {
      the hairline rule below do the framing. */
 }
 
+/* Shown only if the remote logo fails to load, so the header degrades to a
+   wordmark rather than to nothing. */
+.masthead__mark {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--plum-red);
+  letter-spacing: -0.03em;
+}
+
 .masthead__meta {
   font-size: 13px;
   color: var(--fg-muted);

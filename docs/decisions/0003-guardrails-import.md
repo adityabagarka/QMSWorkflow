@@ -63,12 +63,20 @@ Not sentinels — these columns simply are not numbers:
 - `insurer_family_guardrails.premium_floor` — `charged on min 15 lives`, `min ₹100,000`, `-`
 - `insurer_family_guardrails.policy_max_age` — `not offered`
 
-**This one needs a decision before M3.** §4.3's premium formula is
-`MAX(per_life_rate * MAX(rated_lives, min_lives_for_premium), min_premium)`,
-which treats `min_lives_for_premium` as a scalar — but for one insurer it is
-stated per family definition. M3 must resolve it per `family_definition` before
-applying the formula. Confirm the intended reading rather than letting the
-implementation guess.
+**Resolved.** The insurer is Zurich Kotak, and the reading is:
+`min_lives_for_premium` is resolved per `family_definition` _before_ the formula
+is applied — 15 for E and ESC, 25 for ESCP. The rate itself stays per-life; only
+the lives floor varies. So the formula is unchanged, and M3 looks the floor up
+by family rather than treating it as one number per insurer.
+
+The three shapes the floor takes across the panel are also by design, confirmed,
+and all three must be implemented:
+
+| Shape                               | Insurers                                                                          | Behaviour                                                 |
+| ----------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| A lives floor                       | Bajaj General, ICICI Lombard, Magma, Narayana Health (15); Liberty, TATA AIG (25) | Premium is charged on at least this many lives            |
+| A premium floor                     | ABHI (₹100,000), Niva Bupa (₹75,000)                                              | No lives floor; the premium simply cannot fall below this |
+| A lives floor that varies by family | Zurich Kotak (E 15; ESC 15; ESCP 25)                                              | As above, resolved per family definition                  |
 
 ## Row counts
 

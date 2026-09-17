@@ -1,31 +1,48 @@
+'use client';
+
+import { useState } from 'react';
+
 /**
  * The slim cream header the design system calls for: small plum logo left,
  * lightweight sans detail right, hairline rule beneath (docs/plum-design.md).
  */
 
 /**
- * INTERIM: the logo is hotlinked from Plum's own CDN rather than served from
- * this app.
+ * The logo is loaded from Plum's own CDN rather than copied into this app.
  *
- * It should be vendored into `public/` instead — an external URL means the
- * branding breaks if that path ever moves, and it makes every page load wait on
- * a third host. Kept remote only because this build environment has no network
- * access to plumhq.com, so the file could not be downloaded and committed.
+ * Deliberate: a rebrand or a logo tweak on plumhq.com reaches this app with no
+ * deploy and nobody having to remember it exists. For an internal tool serving
+ * one company, that is worth more than self-hosting.
  *
- * To finish the job: save the SVG to `public/plum-logo.svg` and change `src`
- * below to `/plum-logo.svg`. Nothing else needs to change.
+ * The cost is that the app's branding now depends on a URL it does not control,
+ * and a rebrand is exactly the moment paths get renamed. So the fallback below
+ * is not decoration: if the image ever fails to load, the header shows the
+ * wordmark instead of an empty space, and the app keeps looking deliberate
+ * rather than broken.
  */
 const LOGO_SRC = 'https://app.plumhq.com/images/plum_rebranded_logo.svg';
 
 export function Masthead({ meta }: { meta?: string }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+
   return (
     <header className="masthead">
-      {/* Plain <img> rather than next/image: the asset is an SVG, which Next's
-          optimiser passes through untouched anyway, and this avoids configuring
-          a remote pattern for a URL that is meant to become local. The alt text
-          carries the wordmark if the image ever fails to load. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="masthead__logo" src={LOGO_SRC} alt="Plum" width={72} height={24} />
+      {logoFailed ? (
+        <span className="masthead__mark">Plum</span>
+      ) : (
+        /* Plain <img> rather than next/image: the asset is an SVG, which Next's
+           optimiser passes through untouched anyway, and this avoids declaring
+           a remote pattern for one logo. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          className="masthead__logo"
+          src={LOGO_SRC}
+          alt="Plum"
+          width={72}
+          height={24}
+          onError={() => setLogoFailed(true)}
+        />
+      )}
       {meta ? <span className="masthead__meta">{meta}</span> : null}
     </header>
   );

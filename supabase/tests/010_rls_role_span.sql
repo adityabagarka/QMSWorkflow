@@ -7,7 +7,7 @@
 -- means the guarantee has to be testable without the application present.
 
 begin;
-select plan(53);
+select plan(55);
 
 -- --------------------------------------------------------------------------
 -- Synthetic org (no real PII anywhere — CLAUDE.md).
@@ -173,13 +173,17 @@ set local role authenticated;
 select is((select count(*) from cases)::int, 4,
   'HoD sees the entire subtree at every depth, including grandchildren');
 
-select throws_ok(
+select lives_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('HoD case', uid_of('hod')) $$,
-  '42501', null,
-  'HoD cannot create a case');
+  'HoD can create a case of their own');
 
-select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('mgr')$q$), 0,
-  'HoD update reaches no rows: read-only means read-only');
+-- The cover principle: a Head of Department can act on a deal two levels below
+-- them, so work is not stranded when the owner is unavailable.
+select is(rows_affected($q$update cases set state = 'hod_edited' where owner_user_id = uid_of('c1')$q$), 1,
+  'HoD can transact on a grandchild''s deal');
+
+select is(rows_affected($q$update cases set state = 'hod_edited' where owner_user_id = uid_of('c3')$q$), 1,
+  'HoD can transact across the whole subtree, both branches');
 
 -- ==========================================================================
 -- Leader: own subtree only. This leader has no reports, which is exactly the
@@ -191,10 +195,11 @@ set local role authenticated;
 
 select is((select count(*) from cases)::int, 0,
   'Leader with no reports sees no deals — span is a subtree, not the org');
-select throws_ok(
+select lives_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('Leader case', uid_of('leader')) $$,
-  '42501', null,
-  'Leader cannot create a case');
+  'Leader can create a case of their own');
+select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('c1')$q$), 0,
+  'Leader still cannot reach a deal outside their own subtree');
 
 -- ==========================================================================
 -- Admin: all deals, read-only; CRUD on guardrails reference data only.
@@ -203,14 +208,15 @@ reset role;
 call act_as('admin');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 4,
+-- Four seeded, plus the two the HoD and Leader created above.
+select is((select count(*) from cases)::int, 6,
   'Admin sees every deal');
 select throws_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('Admin case', uid_of('admin')) $$,
   '42501', null,
   'Admin cannot create a case');
 select is(rows_affected($q$update cases set state = 'tampered'$q$), 0,
-  'Admin update reaches no deal rows');
+  'Admin update reaches no deal rows — an administrative view, not a position in the hierarchy');
 
 select lives_ok(
   $$ insert into ref_enums (enum_name, allowed_value) values ('test_enum', 'test_value') $$,
@@ -250,7 +256,7 @@ reset role;
 call act_as('super');
 set local role authenticated;
 
-select is((select count(*) from cases)::int, 4,
+select is((select count(*) from cases)::int, 6,
   'Super Admin sees every deal');
 select lives_ok(
   $$ insert into cases (customer_name, owner_user_id) values ('SA case', uid_of('super')) $$,

@@ -36,26 +36,53 @@ Two boundaries still hold, and are asserted:
 - A Manager may hand a deal to anyone inside their team, but cannot reassign one
   to somebody outside it — that would push a case out of their own sight.
 
-## Leader and Head of Department remain read-only
+## Leaders and Heads of Department too
 
-Deliberately unchanged. §15 states "Can transact: **No**" explicitly for both
-roles, and that is what is implemented.
+Confirmed after the first revision, and implemented in
+`0014_span_write_for_all_hierarchy_roles.sql`: **every role in the reporting
+hierarchy views and edits its own span**, not just Managers.
 
-This is worth naming because the instruction that prompted this revision was
-that the rule "applies to the entire hierarchy rolling up to the leader", which
-could be read as granting Leaders and HoDs the same span-write rights. It has
-not been read that way here: widening write access to two more roles on an
-ambiguous reading, against an explicit "No" in the spec, is the kind of change
-that is invisible until someone edits a deal they should not have.
+The rationale given, which is worth recording because it explains the shape:
 
-If Leaders and Heads of Department should in fact transact across their span,
-it is the same one-line change — add those roles to the `span_user_ids()` branch
-of `app.can_write_case()` — plus the corresponding assertions in
-`010_rls_role_span.sql`. Ask before making it.
+> roll up prevents a parallel user looking at my deals or transacting on them,
+> but my manager/leader/HOD would have access to my deals — this becomes my
+> backup.
+
+So the reporting line is doing two jobs at once. Downward it is cover: anyone
+above you can pick up your work when you are unavailable. Sideways it is
+isolation: a peer cannot see or touch your deals at all.
+
+This supersedes §15's "Can transact: **No**" for Leader and Head of Department.
+The table is treated as describing the intent behind the roles rather than the
+last word on it, since the intent has now been stated directly.
+
+Read and write use the same span for every hierarchy role, which is the
+simplification worth having: one rule — "your subtree" — rather than a
+visibility rule and a separate, narrower transaction rule that can drift apart
+as the system grows.
+
+### What did not change
+
+**Admin still reads every deal and writes none.** Admin is an administrative
+view across the whole organisation, not a position in the hierarchy, so the
+span argument does not apply to it and §15's read-only stance stands. Admin's
+write access remains what §4.3 grants it: the guardrails reference data.
+
+**Consultant is unchanged in practice.** A Consultant's span is themselves, so
+nothing differs today. It would differ only if someone were given a Consultant
+as their manager, in which case that Consultant gains the same cover rights —
+which is the rule applied consistently rather than an exception.
 
 ## Assertions
 
-`010_rls_role_span.sql` covers both directions: a Manager editing a direct
-report's deal and every report's deal; a Manager failing to touch, create or
-receive a case outside their subtree; and Leader, HoD and Admin updates still
-reaching zero rows.
+`010_rls_role_span.sql` covers both directions:
+
+- a Manager editing a direct report's deal, and every report's deal
+- a Head of Department editing a grandchild's deal, across both branches of the
+  subtree
+- a Leader with no reports creating their own case but still unable to reach
+  anything outside their subtree
+- a Manager failing to touch, create or receive a case outside their subtree,
+  including that reassigning a deal out of their own visibility is a hard error
+  rather than a silent no-op
+- Admin updates still reaching zero deal rows

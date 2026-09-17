@@ -28,15 +28,13 @@ Nothing beyond M0 has been started.
 
 ### Open before the next milestones
 
-- **M1 is blocked** on the Salesforce field-level mapping in §18.4 — exact API
-  field names for policy expiry, industry and entity type. Needs the SF admin,
-  not engineering.
-- **M3** needs a reading of `min_lives_for_premium`, which §4.3's premium formula
-  treats as a scalar but which one insurer states per family definition. See
-  `docs/decisions/0003-guardrails-import.md`.
+- **Salesforce sync is deferred**, not blocking: deals and customer profiles are
+  entered by hand first, so §18.4's field mapping is only needed when the sync
+  itself is built.
 - **M4** needs the workflow orchestrator decision (§18.3, Temporal recommended).
-- **The Plum logo is hotlinked** from `app.plumhq.com` rather than served from
-  this app. See the note in `src/components/masthead.tsx`.
+- **The Plum logo is loaded from `app.plumhq.com`** by design, so a rebrand
+  reaches this app without a deploy. It falls back to a wordmark if that URL
+  ever moves. See `src/components/masthead.tsx`.
 
 ## Getting started
 
