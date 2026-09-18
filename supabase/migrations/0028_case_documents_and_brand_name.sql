@@ -27,9 +27,37 @@ comment on column customers.brand_name is
 -- legal name, so both are indexed the same way.
 create index customers_brand_name_idx on customers (lower(brand_name));
 
--- A legal name that is a GSTIN is not a name. This happens when somebody pastes
--- an identifier into a name field and nothing stops them — it happened on the
--- first real deal created through this app.
+-- --------------------------------------------------------------------------
+-- A legal name that is a GSTIN is not a name.
+--
+-- This happens when somebody pastes an identifier into a name field and
+-- nothing stops them, and it is not hypothetical: the first real deal created
+-- through this app is named 27AABCM1234N1Z5.
+--
+-- So the rows that already exist are repaired BEFORE the rule is imposed. A
+-- check constraint is a statement about every row, present and future, and
+-- adding one without fixing what is already there fails the deploy — which is
+-- exactly what happened on staging.
+-- --------------------------------------------------------------------------
+update customers
+   set gstin = upper(legal_name)
+ where legal_name ~ '^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][0-9A-Za-z]{3}$'
+   and gstin is null
+   -- Never onto a GSTIN another customer already holds: that would fail the
+   -- unique index, and two customers claiming one taxpayer is a merge somebody
+   -- has to decide rather than something a migration should guess at.
+   and not exists (
+     select 1 from customers other
+     where other.gstin = upper(customers.legal_name)
+   );
+
+-- The name itself cannot be recovered — a GSTIN is all we were given. A visible
+-- placeholder is the honest outcome: deal setup requires a legal name, so this
+-- asks to be corrected rather than quietly shipping onto a policy.
+update customers
+   set legal_name = 'Name not captured'
+ where legal_name ~ '^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][0-9A-Za-z]{3}$';
+
 alter table customers add constraint customers_legal_name_not_a_gstin
   check (legal_name !~ '^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][0-9A-Za-z]{3}$');
 

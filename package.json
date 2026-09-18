@@ -22,6 +22,8 @@
     "test:parse": "tsx scripts/__tests__/parse-connection-string.ts",
     "db:check": "tsx scripts/check-connection.ts",
     "test:routes": "tsx scripts/__tests__/wizard-routes.ts",
+    "verify": "bash scripts/verify.sh",
+    "test:migrations": "tsx scripts/__tests__/migrations-against-dirty-data.ts",
     "test:parsing": "tsx scripts/__tests__/parsing.ts",
     "test:cover-start": "tsx scripts/__tests__/cover-start.ts",
     "test:fonts": "cd docs/design-review && node font-roles.mjs",

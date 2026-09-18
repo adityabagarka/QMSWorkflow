@@ -83,6 +83,13 @@ jobs:
       - name: Apply migrations
         run: npm run db:migrate
 
+      # A schema change is tested against an empty database by everything
+      # above and against the rows people actually created by this. 0028 added
+      # a constraint refusing a GSTIN as a company name and failed the staging
+      # deploy, because the first real deal is named 27AABCM1234N1Z5.
+      - name: Migrations survive the data already there
+        run: npm run test:migrations
+
       - name: Prove the role/span model (ARCHITECTURE.md §15)
         run: npm run db:test
 
