@@ -10,19 +10,6 @@ jobs:
     name: Schema, RLS policies and guardrails import
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: qms
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports: ['5432:5432']
-
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/qms
 
@@ -35,12 +22,40 @@ jobs:
 
       - run: npm ci
 
-      # pgTAP is how the §15 role/span model is proved. Without it the RLS
-      # suite cannot run, so the build should fail rather than skip it.
-      - name: Install pgTAP
+      # ── PostgreSQL, on the runner rather than as a service container ──
+      #
+      # This job used to use a `postgres:15` service container and install
+      # postgresql-15-pgtap on the runner. That could never have worked, and
+      # apparently never did: `run-pgtap.ts` issues `create extension pgtap`,
+      # which loads the extension on the SERVER, and the server was inside a
+      # container that has no pgTAP in it. The package on the host was for a
+      # PostgreSQL that nothing was connecting to.
+      #
+      # It stayed hidden because the apt step failed first — Ubuntu only ships
+      # the pgTAP build matching its own default server, so when the hosted
+      # runner moved to 24.04 (which defaults to PostgreSQL 16) the name
+      # postgresql-15-pgtap stopped existing and the job went red on "Unable to
+      # locate package" before ever reaching a test.
+      #
+      # Running the server on the runner puts the extension and the server in
+      # the same filesystem, which is the whole requirement. 16 rather than 15
+      # because that is what this runner image packages a matching pgTAP for;
+      # the migrations are version-agnostic, and `Deploy to Supabase staging`
+      # is what proves them against the version staging actually runs.
+      - name: PostgreSQL with pgTAP
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client postgresql-15-pgtap
+          sudo apt-get install -y postgresql-16 postgresql-16-pgtap
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -c "alter user postgres password 'postgres'"
+          sudo -u postgres createdb qms
+
+      # Fail loudly here rather than 300 lines later with a confusing error if
+      # the extension is not actually loadable.
+      - name: Confirm pgTAP is available to the server
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d qms \
+            -v ON_ERROR_STOP=1 -c "create extension pgtap" -c "drop extension pgtap"
 
       - run: npm run typecheck
       - run: npm run format:check
@@ -52,6 +67,10 @@ jobs:
       # Every wizard step must have a page: the navigation and the routes are
       # separately correct and can disagree, which is a 404 nothing else catches.
       - run: npm run test:routes
+
+      # Dates are India's, on machines that all run on GMT. Runs twice, once in
+      # each zone, and requires the same answer from both.
+      - run: npm run test:time
 
       - name: Apply migrations
         run: npm run db:migrate
@@ -84,3 +103,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+      # The typeface each thing is set in, asserted rather than eyeballed —
+      # including that a missing font variable degrades to the system sans
+      # rather than taking the whole declaration with it and rendering the app
+      # in Times. Needs a browser to read computed styles.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:fonts

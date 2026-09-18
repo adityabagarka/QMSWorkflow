@@ -22,6 +22,7 @@
  *
  * Run with `npm run test:fonts`.
  */
+import { existsSync } from 'node:fs';
 import { chromium } from 'playwright';
 
 /** [page, selector, expected role] */
@@ -48,9 +49,15 @@ const CASES = [
   ['05-terms-built.html', '.opt-name', 'sans'],
 ];
 
-const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-});
+/*
+ * This image ships a pinned Chromium; a GitHub runner does not, and there
+ * Playwright resolves its own. Naming a path that does not exist is a hard
+ * failure, so only pass one when it is actually there.
+ */
+const PINNED = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const launchOptions = existsSync(PINNED) ? { executablePath: PINNED } : {};
+
+const browser = await chromium.launch(launchOptions);
 const page = await browser.newPage();
 
 let failures = 0;

@@ -6,7 +6,7 @@
 -- an insurer is quoted terms nobody read.
 
 begin;
-select plan(15);
+select plan(17);
 
 create temporary table fx (who text primary key, id uuid default gen_random_uuid());
 insert into fx (who) values ('rm');
@@ -26,10 +26,21 @@ values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-1111111
 -- The benefit keys used below, in case this runs before the guardrails workbook
 -- has been imported. On a loaded database these already exist and the insert is
 -- a no-op; the suite must not depend on import order either way.
+--
+-- The fourth is there precisely because the suite DID depend on import order
+-- and nobody noticed, since CI's pgTAP step had never actually run. The
+-- coverage assertion further down — "reviewing the terms that exist is not
+-- enough" — is only meaningful when the catalogue holds a benefit this policy
+-- has no term for. On a loaded database the real catalogue supplies dozens; on
+-- an empty one the seed above supplied exactly the three the policy covers, so
+-- the assertion quietly became "three of three is not complete" and failed.
+-- This one is never given a term until the sweep at the end, which is what
+-- makes the assertion about coverage rather than about import order.
 insert into benefit_catalogue (benefit_key, display_order, section, benefit_label) values
   ('members_covered', 1, 'The basics', 'Members Covered'),
   ('max_age_parents', 8, 'The basics', 'Max age - Parents'),
-  ('room_rent_limit_normal_room', 31, 'Sum insured, limits & copay', 'Room rent limit - Normal room')
+  ('room_rent_limit_normal_room', 31, 'Sum insured, limits & copay', 'Room rent limit - Normal room'),
+  ('maternity_cover', 45, 'Mother & Child', 'Maternity Cover')
 on conflict (benefit_key) do nothing;
 
 -- Three terms across two sections, as an extraction would leave them.
@@ -158,6 +169,37 @@ where not exists (
 select ok(
   app.policy_review_complete('22222222-2222-2222-2222-222222222222'),
   'With every benefit decided, the policy is ready for RFQ');
+
+-- --------------------------------------------------------------------------
+-- And an empty catalogue does not count as "everything decided" (0026).
+--
+-- Left last because it empties the catalogue, which nothing after it could
+-- rely on. The transaction rolls back, so the rows return.
+--
+-- This is the same vacuous-truth fault as the blank policy above, one level
+-- further out: 0020 made completeness mean "every benefit in the catalogue is
+-- decided", which is trivially satisfied when there are no benefits. That is
+-- the state of the database between `db:migrate` and `db:import-guardrails`,
+-- and of any environment where the workbook import failed.
+--
+-- TRUNCATE CASCADE rather than DELETE: seven tables carry a foreign key to
+-- benefit_key, and on a database where the workbook HAS been imported
+-- sku_coverage alone holds eighty-odd thousand rows referencing it, so a plain
+-- delete fails outright. Naming those seven here would make this assertion
+-- break every time the schema gains an eighth — which is the same "depends on
+-- the state of the database rather than on its own fixtures" fault this whole
+-- suite is about. CASCADE follows the graph itself, and the rollback at the
+-- end of the transaction puts every one of them back.
+-- --------------------------------------------------------------------------
+truncate benefit_catalogue cascade;
+
+select is(
+  (select count(*) from benefit_catalogue)::int, 0,
+  'The catalogue can be emptied, so what follows is really testing that case');
+
+select ok(
+  not app.policy_review_complete('22222222-2222-2222-2222-222222222222'),
+  'With no catalogue to measure against, the gate is shut rather than vacuously open');
 
 select * from finish();
 rollback;
