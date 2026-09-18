@@ -9,7 +9,44 @@ import { withClient } from './db';
 
 const TESTS_DIR = join(process.cwd(), 'supabase', 'tests');
 
+/**
+ * The suites create rows — a company, a user, a case — and roll them back. On a
+ * disposable database that is harmless. On a real one it is not: five deploys
+ * in a row failed because a fixture's email or GSTIN collided with a row that
+ * already existed there, and a rolled-back transaction does not undo a unique
+ * index it had to wait on. So this refuses to run anywhere but a local,
+ * throwaway Postgres unless it is told, in as many words, that the target is
+ * disposable.
+ *
+ * What the deployed database should be checked for instead is in
+ * `scripts/smoke-staging.ts`: catalogue reads only, nothing written.
+ */
+function refuseARealDatabase() {
+  if (process.env.PGTAP_TARGET_IS_DISPOSABLE === 'yes') return;
+
+  const url = process.env.DATABASE_URL ?? '';
+  let host = '';
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    host = '';
+  }
+
+  const local = ['localhost', '127.0.0.1', '::1', 'postgres', 'db'];
+  if (local.includes(host)) return;
+
+  console.error(
+    `Refusing to run the fixture suites against ${host || 'this database'}.\n` +
+      'These tests write rows. Point DATABASE_URL at a scratch Postgres, or set\n' +
+      'PGTAP_TARGET_IS_DISPOSABLE=yes if the target really is throwaway.\n' +
+      'To check a deployed database, run `npm run db:smoke` instead.',
+  );
+  process.exit(1);
+}
+
 async function main() {
+  refuseARealDatabase();
+
   const failures: string[] = [];
 
   await withClient(async (client) => {

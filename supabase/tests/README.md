@@ -3,11 +3,26 @@
 Run with `npm run db:test`. Each file manages its own transaction and rolls
 back, so a suite leaves nothing behind.
 
-## These run against the real staging database
+## These run against a scratch Postgres, not the real database
 
-The deploy workflow runs them against Supabase, not a throwaway instance. That
-is deliberate — §15's guarantees are worth proving where they actually have to
-hold — but it imposes one rule:
+They used to run against staging, on the reasoning that §15's guarantees are
+worth proving where they actually have to hold. Five red deploys later, the
+cost of that was clear: these suites create rows, and a fixture meeting a real
+row fails a deploy without saying anything true about the schema. A
+rolled-back transaction does not undo a unique index it had to wait on.
+
+So the two questions are now asked separately:
+
+| Question                                                 | How                                                        | Where                                 |
+| -------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------- |
+| Does the schema behave correctly?                        | `npm run db:test` — the pgTAP suites, which write fixtures | CI, against the runner's own Postgres |
+| Did the deploy land, and is the deployed database sound? | `npm run db:smoke` — catalogue reads only, writes nothing  | The staging deploy workflow           |
+
+`db:test` refuses to run against anything but a local host unless
+`PGTAP_TARGET_IS_DISPOSABLE=yes` says the target is throwaway.
+
+The rule below still holds, and is why the suites are worth keeping honest even
+now that they cannot meet production data:
 
 **A test must not depend on production data, and must not collide with it.**
 

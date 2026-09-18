@@ -1,12 +1,10 @@
 import Link from 'next/link';
 import { requireActiveSession } from '@/lib/auth/session';
 import { Masthead } from '@/components/masthead';
-import { appetiteOptions } from '@/lib/cases/appetite';
 import { DealForm } from './deal-form';
 
 export default async function NewDealPage() {
   const session = await requireActiveSession();
-  const { industries, entityTypes } = await appetiteOptions();
 
   return (
     <main className="shell">
@@ -17,12 +15,13 @@ export default async function NewDealPage() {
         <h1>Start with what you know.</h1>
         <hr className="section__rule" />
         <p className="standfirst">
-          Only the customer name is needed to begin. The expiring policy, member roster and claims
-          history are added next, and each one narrows what the insurers are being asked to quote.
+          Name the customer and we have somewhere to put the paperwork. The expiring policy, member
+          roster and claims history come next — most of what the deal needs is read out of them, so
+          there is little left to type.
         </p>
 
         <div style={{ marginTop: 32 }}>
-          <DealForm industries={industries} entityTypes={entityTypes} />
+          <DealForm />
         </div>
 
         <p style={{ marginTop: 32 }}>

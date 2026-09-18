@@ -49,12 +49,18 @@ jobs:
         id: migrate
         run: npm run db:migrate
 
-      # §15 requires the database itself to enforce who can see which deals.
-      # Proving that on the real instance matters more than proving it locally,
-      # because this is where the policies actually have to hold.
-      - name: Prove the role/span model on the real database
+      # Read-only checks: migrations at head, RLS on every table holding case
+      # data, a policy on each, the public wrappers the app calls, the audit
+      # log's missing UPDATE/DELETE grants, the reference tables loaded, India
+      # time on the app roles.
+      #
+      # Deliberately NOT the pgTAP suites. Those create fixtures, and a fixture
+      # meeting a real row is what broke five deploys running — a test database
+      # is where they belong, and CI runs all 223 assertions against a scratch
+      # Postgres on every push.
+      - name: Check the deployed database is sound
         id: verify
-        run: npm run db:test
+        run: npm run db:smoke
 
       - name: Import the guardrails workbook
         id: seed

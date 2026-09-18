@@ -78,9 +78,11 @@ export async function createDeal(
         brand_name: facts ? facts.legalName : customerName,
         gstin: typedGstin,
         location: facts?.location ?? null,
-        entity_type:
-          facts?.entityType ?? (String(formData.get('entity_type') ?? '').trim() || null),
-        industry: String(formData.get('industry') ?? '').trim() || null,
+        // Industry and constitution are asked for on the deal setup step, not
+        // here: this screen exists only to give the documents something to
+        // attach to, and asking twice invites two answers.
+        entity_type: facts?.entityType ?? null,
+        industry: null,
         date_of_incorporation: facts?.dateOfIncorporation ?? null,
       },
       session.userId,
@@ -131,7 +133,10 @@ export async function createDeal(
     after: { customer_id: customerId, owner_user_id: session.userId },
   });
 
-  redirect(`/deals/${data.id}`);
+  // Documents first (ADR 0011): the roster, the claims dump and the expiring
+  // policy fill in most of what the later steps ask for, so the user meets the
+  // upload slots before any form.
+  redirect(`/deals/${data.id}/documents`);
 }
 
 /**

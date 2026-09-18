@@ -2,7 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { useEffect, useState } from 'react';
-import { Field, Input, Select } from '@/components/form';
+import { Field, Input } from '@/components/form';
 import { createDeal, findCustomers, type CreateDealResult, type CustomerMatch } from '../actions';
 
 function SubmitButton() {
@@ -23,14 +23,13 @@ function SubmitButton() {
  * already hold rather than create a near-duplicate with the name typed slightly
  * differently. Showing what we know before offering a blank field is what makes
  * that the easy path rather than the diligent one.
+ *
+ * Everything else about the company — brand and legal name, GSTIN, industry,
+ * constitution — is asked for on the deal setup step, where the uploaded
+ * documents can answer most of it. This screen only has to get far enough to
+ * have somewhere to put them.
  */
-export function DealForm({
-  industries,
-  entityTypes,
-}: {
-  industries: string[];
-  entityTypes: string[];
-}) {
+export function DealForm() {
   const [result, submit] = useFormState<CreateDealResult, FormData>(createDeal, null);
 
   const [query, setQuery] = useState('');
@@ -129,26 +128,6 @@ export function DealForm({
       <Field label="Policy expiry date" hint="Cover starts the day after. Both are editable later.">
         <Input type="date" name="policy_expiry_date" />
       </Field>
-
-      {/* Only for a new customer — for an existing one these are already known,
-          and offering them here would invite overwriting a record from a form
-          filled in to start a deal. */}
-      {picked ? null : (
-        <>
-          <Field label="Industry">
-            <Select name="industry" options={industries} placeholder="Not known yet" />
-          </Field>
-
-          <Field label="Constitution">
-            <Select name="entity_type" options={entityTypes} placeholder="Not known yet" />
-          </Field>
-
-          <p className="ff__hint" style={{ maxWidth: '58ch' }}>
-            Industry and constitution are recorded for guidance, not as gates. Insurers decide on a
-            rollover case at their own desk, so a deal proceeds whatever these say.
-          </p>
-        </>
-      )}
 
       {result && !result.ok ? (
         <p style={{ color: 'var(--plum-red-deep)', fontSize: 14 }}>{result.message}</p>
