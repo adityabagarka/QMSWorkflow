@@ -10,6 +10,8 @@ import { supabaseServer } from '@/lib/db/server';
 export type Customer = {
   id: string;
   gstin: string | null;
+  /** What people call them. Falls back to the legal name when nobody has said. */
+  brand_name: string | null;
   legal_name: string;
   entity_type: string | null;
   industry: string | null;
@@ -18,7 +20,7 @@ export type Customer = {
 };
 
 export const CUSTOMER_COLUMNS =
-  'id, gstin, legal_name, entity_type, industry, location, date_of_incorporation';
+  'id, gstin, brand_name, legal_name, entity_type, industry, location, date_of_incorporation';
 
 /**
  * GSTINs are uppercase alphanumeric, and the database refuses anything else.
@@ -42,7 +44,7 @@ export async function searchCustomers(query: string, limit = 8): Promise<Custome
   const { data } = await supabase
     .from('customers')
     .select(CUSTOMER_COLUMNS)
-    .or(`legal_name.ilike.%${q}%,gstin.ilike.%${q}%`)
+    .or(`legal_name.ilike.%${q}%,brand_name.ilike.%${q}%,gstin.ilike.%${q}%`)
     .order('legal_name')
     .limit(limit)
     .returns<Customer[]>();
@@ -63,6 +65,7 @@ export async function loadCustomer(id: string): Promise<Customer | null> {
 
 export type CustomerFacts = {
   legal_name: string;
+  brand_name?: string | null;
   gstin?: string | null;
   entity_type?: string | null;
   industry?: string | null;
@@ -94,6 +97,12 @@ export async function findOrCreateCustomer(
     return { ok: false, message: 'A legal name is needed — it is what the policy is issued in.' };
   }
 
+  // Refused here as well as by the check constraint in migration 0028: a GSTIN
+  // is an identifier, and a customer named after one ends up on a policy.
+  if (/^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][0-9A-Za-z]{3}$/.test(legalName)) {
+    return { ok: false, message: 'That is a GSTIN, not a company name.' };
+  }
+
   if (gstin) {
     const { data } = await supabase
       .from('customers')
@@ -121,6 +130,8 @@ export async function findOrCreateCustomer(
     .insert({
       gstin,
       legal_name: legalName,
+      // Until somebody says otherwise, what we call them is their name.
+      brand_name: facts.brand_name?.trim() || legalName,
       entity_type: facts.entity_type ?? null,
       industry: facts.industry ?? null,
       location: facts.location ?? null,

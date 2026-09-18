@@ -1802,3 +1802,178 @@ select.ff__control {
   border-left: 2px solid var(--plum-red);
   background: var(--cream-warm);
 }
+
+/* ---------------------------------------------------------------------- */
+/* Date inputs                                                             */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * A date input renders its value through a shadow DOM, and `appearance: none`
+ * on .ff__control strips the layout that comes with it — which is why the
+ * dates sat centred and high while every text field beside them sat left and
+ * centred vertically. Two fields on one row looking unlike each other reads as
+ * a bug even when the values are right.
+ *
+ * The rules below put the value back on the same baseline and the same left
+ * edge as a text input, and bring back the calendar button, which the same
+ * `appearance: none` had removed.
+ */
+.ff__control[type='date'] {
+  text-align: left;
+  /* The box is 42px with a 1px border each side. */
+  line-height: 40px;
+}
+
+.ff__control[type='date']::-webkit-datetime-edit {
+  padding: 0;
+  line-height: 40px;
+}
+
+.ff__control[type='date']::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+.ff__control[type='date']::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  padding: 0;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+.ff__control[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Firefox leaves its own clear button in, which nothing else has. */
+.ff__control[type='date']::-moz-calendar-picker-indicator {
+  opacity: 0.5;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Documents step                                                          */
+/* ---------------------------------------------------------------------- */
+
+.docslots {
+  display: grid;
+  gap: 16px;
+}
+
+/*
+ * One slot per required document, shown whether or not it is filled. A drop
+ * zone with a list under it would say what has arrived; four named slots say
+ * what has not, which is the question this step exists to answer.
+ */
+.docslot {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  padding: 16px 18px;
+}
+
+.docslot--filled {
+  background: var(--cream);
+  border-color: var(--line-lavender-2);
+}
+
+.docslot__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.docslot__label {
+  font-size: 14.5px;
+  font-weight: var(--w-medium);
+  color: var(--fg-1);
+}
+
+.docslot__purpose {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+  max-width: 56ch;
+}
+
+.docslot__file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--cream-deep);
+  border: var(--hairline-thin) solid var(--line-lavender-2);
+}
+
+.docslot__name {
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.docslot__meta {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.docslot__pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.docslot__chosen {
+  font-size: 12.5px;
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+
+.docslot form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.docslot__error {
+  font-size: 12.5px;
+  color: var(--plum-red-deep);
+  margin-top: 10px;
+}
+
+/* A bare control that reads as text, for a destructive action that should not
+   look like a button competing with the upload beside it. */
+.linkish {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.linkish:hover {
+  color: var(--plum-red);
+}
+
+.plainlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13.5px;
+}
+
+.plainlist li {
+  padding: 7px 0;
+  border-bottom: var(--hairline-thin) solid var(--line-lavender-2);
+  color: var(--fg-2);
+}
+
+.plainlist li:last-child {
+  border-bottom: 0;
+}

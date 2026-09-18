@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/db/server';
 import { getSession } from '@/lib/auth/session';
+import { stageHref } from '@/lib/cases/phases';
 import { normaliseGstin } from '@/lib/cases/customers';
+import { looksLikeGstin } from '@/lib/cases/gstin';
 import { deriveCoverStart, resolveCoverStart } from '@/lib/cases/cover-start';
 
 export type SaveResult = { ok: true } | { ok: false; message: string } | null;
@@ -35,6 +38,16 @@ export async function saveDealSetup(
   const legalName = String(formData.get('legal_name') ?? '').trim();
   if (!legalName) {
     return { ok: false, message: 'A legal name is needed — it is what the policy is issued in.' };
+  }
+
+  // A GSTIN is an identifier, not a name. Pasting one into the name field is an
+  // easy mistake and it ends up printed on the policy, so it is refused here as
+  // well as by the check constraint behind it.
+  if (looksLikeGstin(legalName)) {
+    return {
+      ok: false,
+      message: 'That is a GSTIN, not a name. Put it in the GSTIN field and fetch the details.',
+    };
   }
 
   const supabase = supabaseServer();
@@ -71,6 +84,7 @@ export async function saveDealSetup(
     .from('customers')
     .update({
       legal_name: legalName,
+      brand_name: text('brand_name') ?? legalName,
       gstin: normaliseGstin(text('gstin')),
       location: text('location'),
       entity_type: text('entity_type'),
@@ -118,5 +132,10 @@ export async function saveDealSetup(
   });
 
   revalidatePath(`/deals/${dealId}`);
-  return { ok: true };
+
+  // Saving IS "next" on this step, so the action finishes the journey rather
+  // than leaving the user on a saved form wondering whether to click again.
+  // redirect() throws, so nothing below it runs — that is how Next signals a
+  // navigation from a server action.
+  redirect(stageHref(dealId, 2));
 }

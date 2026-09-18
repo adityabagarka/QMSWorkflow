@@ -42,6 +42,7 @@ export function DealShell({
   next,
   nextLabel = 'next',
   nextDisabled = false,
+  nextForm,
   nextNote,
   wideAside = false,
 }: {
@@ -55,6 +56,15 @@ export function DealShell({
   next?: string;
   nextLabel?: string;
   nextDisabled?: boolean;
+  /**
+   * The id of a form on this step that the forward button should submit.
+   *
+   * A step that collects something has no business offering both "save" and
+   * "next" — they are the same intention, and asking for two clicks to express
+   * it is how a wizard starts feeling like paperwork. The action saves and then
+   * sends the user on, so the footer button is the only one on the page.
+   */
+  nextForm?: string;
   nextNote?: string;
   wideAside?: boolean;
 }) {
@@ -172,11 +182,15 @@ export function DealShell({
           {nextNote ? (
             <span style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>{nextNote}</span>
           ) : null}
-          {next && !nextDisabled ? (
+          {nextForm && !nextDisabled ? (
+            <button className="button" type="submit" form={nextForm}>
+              {nextLabel}
+            </button>
+          ) : next && !nextDisabled ? (
             <Link className="button" href={next}>
               {nextLabel}
             </Link>
-          ) : next ? (
+          ) : next || nextForm ? (
             <button className="button" type="button" disabled>
               {nextLabel}
             </button>

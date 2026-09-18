@@ -6,6 +6,7 @@ import { getSession } from '@/lib/auth/session';
 import { findOrCreateCustomer, searchCustomers } from '@/lib/cases/customers';
 import { deriveCoverStart } from '@/lib/cases/cover-start';
 import { describeCompany } from '@/lib/format';
+import { looksLikeGstin, lookupGstin } from '@/lib/cases/gstin';
 
 export type CreateDealResult = { ok: false; message: string } | null;
 
@@ -53,12 +54,34 @@ export async function createDeal(
 
   let customerId = pickedCustomerId;
   if (!customerId) {
+    /*
+     * The search box takes a name OR a GSTIN, because that is how people
+     * actually look a company up. If what they typed is a GSTIN and it matched
+     * nothing, it is an identifier for a company we do not hold yet — so look
+     * it up rather than naming the company after its tax number, which is what
+     * this did on the first real deal created through the app.
+     */
+    const typedGstin = looksLikeGstin(customerName) ? customerName : null;
+    const facts = typedGstin ? lookupGstin(typedGstin) : null;
+
+    if (typedGstin && !facts) {
+      return {
+        ok: false,
+        message:
+          'That looks like a GSTIN, but there is no taxpayer record for it. Enter the company name instead — the GSTIN can be added on the next step.',
+      };
+    }
+
     const found = await findOrCreateCustomer(
       {
-        legal_name: customerName,
-        gstin: String(formData.get('gstin') ?? ''),
+        legal_name: facts ? facts.legalName : customerName,
+        brand_name: facts ? facts.legalName : customerName,
+        gstin: typedGstin,
+        location: facts?.location ?? null,
+        entity_type:
+          facts?.entityType ?? (String(formData.get('entity_type') ?? '').trim() || null),
         industry: String(formData.get('industry') ?? '').trim() || null,
-        entity_type: String(formData.get('entity_type') ?? '').trim() || null,
+        date_of_incorporation: facts?.dateOfIncorporation ?? null,
       },
       session.userId,
     );
@@ -125,7 +148,7 @@ export async function findCustomers(query: string): Promise<CustomerMatch[]> {
   const matches = await searchCustomers(query);
   return matches.map((c) => ({
     id: c.id,
-    legal_name: c.legal_name,
+    legal_name: c.brand_name?.trim() || c.legal_name,
     gstin: c.gstin,
     description: describeCompany([c.entity_type, c.industry, c.location]),
   }));

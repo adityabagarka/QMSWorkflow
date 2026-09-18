@@ -1,13 +1,18 @@
 /**
- * The six stages a deal moves through (§11, §14 screen 2).
+ * The six steps a deal moves through (ADR 0011, §11, §14 screen 2).
  *
- * Labels are presentation and will be reworded; `cases.current_phase` stores
- * the number. `href` is the step's own screen, so the checklist on the deal
- * page and the step navigation inside a stage stay in step with each other.
+ * Documents first. The wizard is a review pipeline, not a data-entry form: step
+ * 1 collects the evidence, steps 2 to 5 each confirm one slice of what was read
+ * from it, and step 6 assembles. Nothing in step 1 is mandatory — the documents
+ * do not arrive together and a deal must be able to start before they do — but
+ * all four are required to dispatch an RFQ at step 6, which is where the
+ * obligation actually bites.
+ *
+ * Labels are presentation; `cases.current_phase` stores the number.
  */
 export const STAGES = [
-  { phase: 0, label: 'Company', slug: '' },
-  { phase: 1, label: 'Expiring policy', slug: 'policy' },
+  { phase: 0, label: 'Documents', slug: 'documents' },
+  { phase: 1, label: 'Deal setup', slug: '' },
   { phase: 2, label: 'Members', slug: 'members' },
   { phase: 3, label: 'Claims', slug: 'claims' },
   { phase: 4, label: 'Terms & options', slug: 'terms' },

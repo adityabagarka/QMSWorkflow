@@ -7,6 +7,7 @@ type Raw = {
   deal_type: string;
   cover_start_date: string | null;
   customers: {
+    brand_name: string | null;
     legal_name: string;
     industry: string | null;
     entity_type: string | null;
@@ -39,7 +40,7 @@ export async function loadDealHeader(dealId: string): Promise<{
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, current_phase, deal_type, cover_start_date, customers(legal_name, industry, entity_type, location), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
+      'id, current_phase, deal_type, cover_start_date, customers(brand_name, legal_name, industry, entity_type, location), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
     )
     .eq('id', dealId)
     .maybeSingle<Raw>();
@@ -56,7 +57,10 @@ export async function loadDealHeader(dealId: string): Promise<{
   return {
     header: {
       id: data.id,
-      customer_name: data.customers?.legal_name ?? 'Unnamed customer',
+      // What people call them, on every screen. The legal name is for the
+      // policy, the RFQ and anything an insurer reads.
+      customer_name:
+        data.customers?.brand_name?.trim() || data.customers?.legal_name || 'Unnamed customer',
       deal_type: data.deal_type,
       industry: data.customers?.industry ?? null,
       entity_type: data.customers?.entity_type ?? null,

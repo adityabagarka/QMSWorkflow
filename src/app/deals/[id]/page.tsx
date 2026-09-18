@@ -7,7 +7,7 @@ import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
 import { formatDateTime } from '@/lib/format';
-import { DealSetupForm } from './deal-setup-form';
+import { DealSetupForm, DEAL_SETUP_FORM_ID } from './deal-setup-form';
 
 /** Step 1 — who we are quoting for, and what they have today. */
 export default async function DealSetupStep({ params }: { params: { id: string } }) {
@@ -23,7 +23,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
     supabase
       .from('cases')
       .select(
-        'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(legal_name, gstin, location, entity_type, industry, date_of_incorporation), policies(insurer_name, broker_name, expiring_premium)',
+        'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, gstin, location, entity_type, industry, date_of_incorporation), policies(insurer_name, broker_name, expiring_premium)',
       )
       .eq('id', params.id)
       .single<{
@@ -32,6 +32,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
         cover_start_change_reason: string | null;
         cover_start_change_note: string | null;
         customers: {
+          brand_name: string | null;
           legal_name: string;
           gstin: string | null;
           location: string | null;
@@ -66,11 +67,12 @@ export default async function DealSetupStep({ params }: { params: { id: string }
 
       <DealShell
         deal={header}
-        currentPhase={0}
-        maxReachedPhase={Math.max(currentPhase, 1)}
+        currentPhase={1}
+        maxReachedPhase={Math.max(currentPhase, 2)}
         title="Deal setup"
-        next={stageHref(header.id, 1)}
-        nextLabel="expiring policy"
+        back={stageHref(header.id, 0)}
+        nextForm={DEAL_SETUP_FORM_ID}
+        nextLabel="members"
         aside={
           <div className="aside-block">
             <h3>Activity</h3>
@@ -92,6 +94,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
         <DealSetupForm
           dealId={params.id}
           initial={{
+            brand_name: deal.customers?.brand_name ?? null,
             legal_name: deal.customers?.legal_name ?? '',
             gstin: deal.customers?.gstin ?? null,
             location: deal.customers?.location ?? null,

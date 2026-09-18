@@ -8,29 +8,30 @@ import { yearsSince, formatDate, GST_INPUT_HINT } from '@/lib/format';
 import { COVER_START_CHANGE_REASONS, deriveCoverStart } from '@/lib/cases/cover-start';
 import { saveDealSetup, type SaveResult } from './actions';
 
-function SaveButton() {
+/** Shared with the page, so the step footer can submit this form. */
+export const DEAL_SETUP_FORM_ID = 'deal-setup';
+
+/**
+ * Saving is what "next" means on this step, so there is no save button —
+ * the footer's forward button submits this form (see DealShell's nextForm).
+ * This only reports that something is in flight.
+ */
+function Saving() {
   const { pending } = useFormStatus();
-  return (
-    <button className="button" type="submit" disabled={pending}>
-      {pending ? 'saving…' : 'save'}
-    </button>
-  );
+  return pending ? <p className="ff__hint">Saving…</p> : null;
 }
 
-/** A labelled band grouping fields that belong to the same thing. */
-function Section({
-  title,
-  note,
-  children,
-}: {
-  title: string;
-  note?: string;
-  children: React.ReactNode;
-}) {
+/**
+ * A labelled band grouping fields that belong to the same thing.
+ *
+ * A label, not a lesson. Somebody filling in an expiring premium knows what an
+ * expiring premium is, and a sentence explaining the section to them is text
+ * they have to read past every time.
+ */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="formsec">
       <h3 className="formsec__title">{title}</h3>
-      {note ? <p className="formsec__note">{note}</p> : null}
       {children}
     </section>
   );
@@ -44,6 +45,7 @@ export function DealSetupForm({
 }: {
   dealId: string;
   initial: {
+    brand_name: string | null;
     legal_name: string;
     gstin: string | null;
     location: string | null;
@@ -68,6 +70,7 @@ export function DealSetupForm({
 
   const [gstin, setGstin] = useState(initial.gstin ?? '');
   const [name, setName] = useState(initial.legal_name);
+  const [brand, setBrand] = useState(initial.brand_name ?? '');
   const [location, setLocation] = useState(initial.location ?? '');
   const [entityType, setEntityType] = useState(initial.entity_type ?? '');
   const [doi, setDoi] = useState(initial.date_of_incorporation ?? '');
@@ -84,6 +87,9 @@ export function DealSetupForm({
       return;
     }
     setName(facts.legalName);
+    // Only if nobody has said what we call them yet — a fetch should not
+    // overwrite the name the team actually uses with the registry's version.
+    if (!brand.trim()) setBrand(facts.legalName);
     setLocation(facts.location);
     setEntityType(facts.entityType);
     if (facts.dateOfIncorporation) setDoi(facts.dateOfIncorporation);
@@ -113,11 +119,8 @@ export function DealSetupForm({
   const shifted = Boolean(coverStart && derived && coverStart !== derived);
 
   return (
-    <form action={submit}>
-      <Section
-        title="The company"
-        note="The GSTN record is what the policy should be issued against, so it is the anchor here."
-      >
+    <form action={submit} id={DEAL_SETUP_FORM_ID}>
+      <Section title="Company">
         <FieldRow>
           <Field
             label="GSTIN"
@@ -155,7 +158,10 @@ export function DealSetupForm({
         </FieldRow>
 
         <FieldRow>
-          <Field label="Legal name" wide hint="As it will appear on the policy.">
+          <Field label="Name" hint="What we call them.">
+            <Input name="brand_name" value={brand} onChange={(e) => setBrand(e.target.value)} />
+          </Field>
+          <Field label="Legal name" hint="As it appears on the policy.">
             <Input
               name="legal_name"
               value={name}
@@ -197,7 +203,7 @@ export function DealSetupForm({
         </FieldRow>
       </Section>
 
-      <Section title="The programme being rolled over">
+      <Section title="Expiring programme">
         <FieldRow>
           <Field label="Incumbent insurer">
             <Input name="insurer_name" defaultValue={initial.insurer_name ?? ''} />
@@ -285,7 +291,7 @@ export function DealSetupForm({
         <p style={{ color: 'var(--gain-ink)', fontSize: 13.5 }}>Saved.</p>
       ) : null}
 
-      <SaveButton />
+      <Saving />
     </form>
   );
 }

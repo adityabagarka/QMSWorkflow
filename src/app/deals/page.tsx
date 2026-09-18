@@ -10,6 +10,7 @@ type DealRow = {
   current_phase: number;
   cover_start_date: string | null;
   customers: {
+    brand_name: string | null;
     legal_name: string;
     industry: string | null;
     entity_type: string | null;
@@ -27,7 +28,7 @@ export default async function DealsPage() {
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, current_phase, cover_start_date, owner_user_id, customers(legal_name, industry, entity_type, location), app_users!cases_owner_user_id_fkey(name), member_records(count)',
+      'id, current_phase, cover_start_date, owner_user_id, customers(brand_name, legal_name, industry, entity_type, location), app_users!cases_owner_user_id_fkey(name), member_records(count)',
     )
     .order('cover_start_date', { ascending: true, nullsFirst: false })
     .returns<DealRow[]>();
@@ -68,7 +69,9 @@ export default async function DealsPage() {
                     <tr key={deal.id}>
                       <td>
                         <Link href={`/deals/${deal.id}`}>
-                          {deal.customers?.legal_name ?? 'Unnamed customer'}
+                          {deal.customers?.brand_name?.trim() ||
+                            deal.customers?.legal_name ||
+                            'Unnamed customer'}
                         </Link>
                         <div className="cell-muted" style={{ fontSize: 12.5 }}>
                           {describeCompany([

@@ -8,7 +8,7 @@
 -- is not.
 
 begin;
-select plan(21);
+select plan(23);
 
 create temporary table cx (who text primary key, id uuid default gen_random_uuid());
 insert into cx (who) values ('mgr'), ('rm'), ('outsider'), ('super'), ('cust_a'), ('cust_b');
@@ -80,6 +80,18 @@ select throws_ok(
   $$ insert into customers (legal_name) values ('   ') $$,
   '23514', null,
   'A customer must be named');
+
+-- Pasting a GSTIN into the name field is an easy mistake, and it ends up
+-- printed on a policy. It happened on the first real deal created through
+-- this app, which is why it is a constraint rather than a validation.
+select throws_ok(
+  $$ insert into customers (legal_name) values ('27AABCM9999N1Z5') $$,
+  '23514', null,
+  'A GSTIN is not a company name, whatever was typed');
+
+select lives_ok(
+  $$ insert into customers (legal_name, brand_name) values ('Brandful Synthetic Pvt Ltd', 'Brandful') $$,
+  'A customer carries both the name people use and the name on the paperwork');
 
 select throws_ok(
   $$ delete from customers where id = cxid('cust_a') $$,
