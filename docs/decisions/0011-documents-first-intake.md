@@ -1,6 +1,6 @@
 # 0011 — Documents first: the wizard as a review pipeline
 
-**Status:** accepted (design; not yet implemented)
+**Status:** accepted (design). Rules 4 and 7's schema built in migration 0027; the documents step itself is not yet built.
 **Relates to:** ARCHITECTURE.md §8, §9, §11, §14, §17, §18; ADR 0007, 0008, 0009
 
 ## The problem
@@ -151,6 +151,20 @@ deliberate shift, or a gap the client accepted — and a derived field that cann
 be corrected is a field that will be wrong. The expiry date is captured and
 stored; the start date is what every screen shows (the standing rule).
 
+**And a shift says why.** Why a programme moved is a fact about the customer
+worth counting — it is the difference between a client who plans and one who
+runs late, and it belongs in the analytics rather than in a note nobody can
+aggregate. So the reason is a fixed vocabulary (client asked to start later or
+earlier, gap accepted, aligning to their financial year, incumbent extended,
+waiting on member data, terms not agreed, other), with a free note beside it
+rather than instead of it, and `other` refused without one — a reason that says
+nothing while looking answered is worse than no reason.
+
+`cases.cover_start_derived_date` records what the derivation produced, which is
+what lets the database enforce this on one table, and means a later correction
+to the expiry date does not turn a deliberate override into an apparent mistake.
+Built in migration 0027.
+
 **Where the company and the policy disagree**, the GSTN record wins on legal
 entity details — name, constitution, principal place of business — because it is
 the authoritative registry and it is what the policy should have said. The
@@ -170,8 +184,16 @@ programme section belongs to the deal.
 
 That is an additive schema change, and it is the same seam as the renewal flow
 (see above): a renewal is a new deal against an existing customer with the
-previous deal's data already known. **Worth settling before this is built**, not
-retrofitted after the screens exist.
+previous deal's data already known.
+
+**Settled and built** in migration 0027, ahead of the documents step, precisely
+so it is not retrofitted after the screens exist. `customers` is its own table;
+the company columns are gone from `cases`; existing deals were backfilled,
+collapsing onto a shared GSTIN where they had one and onto the name where they
+did not. Customers are readable by every active user — every column on the row
+is public-registry data, and the confidential material stays on `cases` under
+the span model — which is what makes deduplication possible at all. Proved in
+`supabase/tests/080_customers_and_cover_start.sql`.
 
 ### 5. A disagreement between the MIS and the dump is a decision, not a display
 

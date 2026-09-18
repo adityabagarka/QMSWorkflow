@@ -21,7 +21,8 @@ select plan(58);
 create temporary table ids (who text primary key, id uuid default gen_random_uuid());
 insert into ids (who) values
   ('super'),('admin'),('hod'),('leader'),('mgr'),('mgr2'),
-  ('c1'),('c2'),('c3'),('pending'),('suspended');
+  ('c1'),('c2'),('c3'),('pending'),('suspended'),
+  ('cust_a'),('cust_b'),('cust_c'),('cust_d');
 
 create or replace function uid_of(text) returns uuid language sql stable as
   $$ select id from ids where who = $1 $$;
@@ -39,11 +40,20 @@ insert into app_users (id, email, name, role, manager_id, status) values
   (uid_of('pending'),'pending@example.test','Pending',    null,                null,        'pending'),
   (uid_of('suspended'),'susp@example.test', 'Suspended', 'consultant',         uid_of('mgr'),  'suspended');
 
-insert into cases (id, customer_name, owner_user_id) values
-  (gen_random_uuid(), 'Acme Synthetic Pvt Ltd',   uid_of('c1')),
-  (gen_random_uuid(), 'Borealis Synthetic LLP',   uid_of('c2')),
-  (gen_random_uuid(), 'Cobalt Synthetic Pvt Ltd', uid_of('c3')),
-  (gen_random_uuid(), 'Delta Synthetic Pvt Ltd',  uid_of('mgr'));
+-- A customer per case. The company is its own entity now (migration 0027), so
+-- a fixture case needs one to point at — and these double as the fixtures for
+-- the customer-visibility assertions further down.
+insert into customers (id, legal_name) values
+  (uid_of('cust_a'), 'Acme Synthetic Pvt Ltd'),
+  (uid_of('cust_b'), 'Borealis Synthetic LLP'),
+  (uid_of('cust_c'), 'Cobalt Synthetic Pvt Ltd'),
+  (uid_of('cust_d'), 'Delta Synthetic Pvt Ltd');
+
+insert into cases (id, customer_id, owner_user_id) values
+  (gen_random_uuid(), uid_of('cust_a'), uid_of('c1')),
+  (gen_random_uuid(), uid_of('cust_b'), uid_of('c2')),
+  (gen_random_uuid(), uid_of('cust_c'), uid_of('c3')),
+  (gen_random_uuid(), uid_of('cust_d'), uid_of('mgr'));
 
 create or replace function case_of(p_owner text) returns uuid language sql stable as
   $$ select id from cases where owner_user_id = uid_of(p_owner) limit 1 $$;
@@ -93,7 +103,8 @@ set local role authenticated;
 select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 1,
   'Consultant sees exactly their own case');
 select is(
-  (select customer_name from cases where owner_user_id in (select id from ids)),
+  (select c.legal_name from cases k join customers c on c.id = k.customer_id
+    where k.owner_user_id in (select id from ids)),
   'Acme Synthetic Pvt Ltd',
   'Consultant sees the right case');
 select is((select count(*) from cases where owner_user_id = uid_of('c2'))::int, 0,
@@ -114,7 +125,7 @@ select is((select state from cases where owner_user_id = uid_of('c2')), 'draft',
 call act_as('c1');
 set local role authenticated;
 select throws_ok(
-  $$ insert into cases (customer_name, owner_user_id) values ('Sneaky', uid_of('c2')) $$,
+  $$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('c2')) $$,
   '42501',
   null,
   'Consultant cannot create a case owned by someone else');
@@ -146,7 +157,7 @@ select is(rows_affected($q$update cases set state = 'mgr_edited' where owner_use
 
 -- The boundary still holds: editing rights follow the subtree, not the org.
 select throws_ok(
-  $q$ insert into cases (customer_name, owner_user_id) values ('Outside span', uid_of('c3')) $q$,
+  $q$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('c3')) $q$,
   '42501', null,
   'Manager cannot create a case for someone outside their subtree');
 
@@ -167,7 +178,7 @@ select throws_ok(
 -- layout rather than the one this block just rearranged.
 update cases
    set owner_user_id = uid_of('c1'), state = 'in_review'
- where customer_name = 'Acme Synthetic Pvt Ltd';
+ where customer_id = uid_of('cust_a');
 
 reset role;
 select is((select count(*) from cases where owner_user_id = uid_of('c3') and state = 'draft')::int, 1,
@@ -183,7 +194,7 @@ select is((select count(*) from cases where owner_user_id in (select id from ids
   'HoD sees the entire subtree at every depth, including grandchildren');
 
 select lives_ok(
-  $$ insert into cases (customer_name, owner_user_id) values ('HoD case', uid_of('hod')) $$,
+  $$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('hod')) $$,
   'HoD can create a case of their own');
 
 -- The cover principle: a Head of Department can act on a deal two levels below
@@ -205,7 +216,7 @@ set local role authenticated;
 select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 0,
   'Leader with no reports sees no deals — span is a subtree, not the org');
 select lives_ok(
-  $$ insert into cases (customer_name, owner_user_id) values ('Leader case', uid_of('leader')) $$,
+  $$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('leader')) $$,
   'Leader can create a case of their own');
 select is(rows_affected($q$update cases set state = 'tampered' where owner_user_id = uid_of('c1')$q$), 0,
   'Leader still cannot reach a deal outside their own subtree');
@@ -221,7 +232,7 @@ set local role authenticated;
 select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 6,
   'Admin sees every deal');
 select throws_ok(
-  $$ insert into cases (customer_name, owner_user_id) values ('Admin case', uid_of('admin')) $$,
+  $$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('admin')) $$,
   '42501', null,
   'Admin cannot create a case');
 select is(rows_affected($q$update cases set state = 'tampered'$q$), 0,
@@ -268,7 +279,7 @@ set local role authenticated;
 select is((select count(*) from cases where owner_user_id in (select id from ids))::int, 6,
   'Super Admin sees every deal');
 select lives_ok(
-  $$ insert into cases (customer_name, owner_user_id) values ('SA case', uid_of('super')) $$,
+  $$ insert into cases (customer_id, owner_user_id) values (uid_of('cust_a'), uid_of('super')) $$,
   'Super Admin can transact');
 select lives_ok(
   $$ insert into salesforce_accounts (org_id, label, secret_ref)

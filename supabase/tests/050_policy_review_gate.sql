@@ -9,7 +9,7 @@ begin;
 select plan(17);
 
 create temporary table fx (who text primary key, id uuid default gen_random_uuid());
-insert into fx (who) values ('rm');
+insert into fx (who) values ('rm'), ('cust');
 
 create or replace function fxid(text) returns uuid language sql stable as
   $$ select id from fx where who = $1 $$;
@@ -17,8 +17,11 @@ create or replace function fxid(text) returns uuid language sql stable as
 insert into app_users (id, email, name, role, status)
 values (fxid('rm'), 'rm@example.test', 'RM', 'consultant', 'active');
 
-insert into cases (id, customer_name, owner_user_id)
-values ('11111111-1111-1111-1111-111111111111', 'Synthetic Rollover Ltd', fxid('rm'));
+insert into customers (id, legal_name)
+values (fxid('cust'), 'Synthetic Rollover Ltd');
+
+insert into cases (id, customer_id, owner_user_id)
+values ('11111111-1111-1111-1111-111111111111', fxid('cust'), fxid('rm'));
 
 insert into policies (id, case_id, insurer_name)
 values ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'ICICI Lombard');
@@ -63,8 +66,8 @@ values
 -- --------------------------------------------------------------------------
 -- Its own case: policies.case_id is unique, since a rollover has exactly one
 -- expiring policy.
-insert into cases (id, customer_name, owner_user_id)
-values ('44444444-4444-4444-4444-444444444444', 'Blank Synthetic Ltd', fxid('rm'));
+insert into cases (id, customer_id, owner_user_id)
+values ('44444444-4444-4444-4444-444444444444', fxid('cust'), fxid('rm'));
 insert into policies (id, case_id)
 values ('33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444');
 

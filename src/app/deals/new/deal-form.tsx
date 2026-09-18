@@ -1,8 +1,9 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import { useState } from 'react';
-import { createDeal, type CreateDealResult } from '../actions';
+import { useEffect, useState } from 'react';
+import { Field, Input, Select } from '@/components/form';
+import { createDeal, findCustomers, type CreateDealResult, type CustomerMatch } from '../actions';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -13,6 +14,16 @@ function SubmitButton() {
   );
 }
 
+/**
+ * Starting a deal means naming the company it is for — either one we already
+ * know, or a new one.
+ *
+ * The search comes first deliberately. A customer outlives a deal (ADR 0011
+ * rule 4), so the second deal against a company should attach to the record we
+ * already hold rather than create a near-duplicate with the name typed slightly
+ * differently. Showing what we know before offering a blank field is what makes
+ * that the easy path rather than the diligent one.
+ */
 export function DealForm({
   industries,
   entityTypes,
@@ -21,58 +32,123 @@ export function DealForm({
   entityTypes: string[];
 }) {
   const [result, submit] = useFormState<CreateDealResult, FormData>(createDeal, null);
-  const [industry, setIndustry] = useState('');
-  const [entityType, setEntityType] = useState('');
+
+  const [query, setQuery] = useState('');
+  const [matches, setMatches] = useState<CustomerMatch[]>([]);
+  const [picked, setPicked] = useState<CustomerMatch | null>(null);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (picked || query.trim().length < 2) {
+      setMatches([]);
+      return;
+    }
+
+    // Debounced, and guarded against an earlier search resolving after a later
+    // one: typing "Meridian" fires several, and the slowest must not win.
+    let live = true;
+    setSearching(true);
+    const timer = setTimeout(() => {
+      findCustomers(query)
+        .then((found) => {
+          if (live) setMatches(found);
+        })
+        .finally(() => {
+          if (live) setSearching(false);
+        });
+    }, 200);
+
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [query, picked]);
 
   return (
-    <form action={submit} style={{ maxWidth: 560 }}>
-      <label className="field">
-        <span className="field__label">Customer name</span>
-        <input type="text" name="customer_name" required autoComplete="off" />
-      </label>
+    <form action={submit} style={{ maxWidth: 620 }}>
+      {picked ? (
+        <div className="picked">
+          <input type="hidden" name="customer_id" value={picked.id} />
+          <div>
+            <div className="picked__name">{picked.legal_name}</div>
+            <div className="picked__what">
+              {picked.gstin ? `${picked.gstin} · ` : ''}
+              {picked.description}
+            </div>
+          </div>
+          <button
+            className="button button--secondary"
+            type="button"
+            onClick={() => {
+              setPicked(null);
+              setQuery('');
+            }}
+          >
+            change
+          </button>
+        </div>
+      ) : (
+        <>
+          <Field
+            label="Customer"
+            wide
+            hint="Search by name or GSTIN. If they are not here yet, what you type becomes a new customer."
+          >
+            <Input
+              name="customer_name"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoComplete="off"
+              placeholder="Meridian Logistics, or 27AABCM1234N1Z5"
+              required
+            />
+          </Field>
 
-      <label className="field">
-        <span className="field__label">Policy expiry date</span>
-        <input type="date" name="policy_expiry_date" />
-        <span className="field__hint">
-          Drives the reminder cascade later — a deal expiring inside the reminder window is handled
-          differently.
-        </span>
-      </label>
+          {matches.length > 0 ? (
+            <ul className="matches">
+              {matches.map((m) => (
+                <li key={m.id}>
+                  <button type="button" onClick={() => setPicked(m)}>
+                    <span className="matches__name">{m.legal_name}</span>
+                    <span className="matches__what">
+                      {m.gstin ? `${m.gstin} · ` : ''}
+                      {m.description}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-      <label className="field">
-        <span className="field__label">Industry</span>
-        <select name="industry" value={industry} onChange={(e) => setIndustry(e.target.value)}>
-          <option value="">Not known yet</option>
-          {industries.map((i) => (
-            <option key={i} value={i}>
-              {i}
-            </option>
-          ))}
-        </select>
-      </label>
+          {searching && matches.length === 0 && query.trim().length >= 2 ? (
+            <p className="ff__hint">Looking…</p>
+          ) : null}
+        </>
+      )}
 
-      <label className="field">
-        <span className="field__label">Constitution</span>
-        <select
-          name="entity_type"
-          value={entityType}
-          onChange={(e) => setEntityType(e.target.value)}
-        >
-          <option value="">Not known yet</option>
-          {entityTypes.map((e) => (
-            <option key={e} value={e}>
-              {e}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field label="Policy expiry date" hint="Cover starts the day after. Both are editable later.">
+        <Input type="date" name="policy_expiry_date" />
+      </Field>
 
-      <p className="field__hint" style={{ maxWidth: '58ch' }}>
-        Industry and constitution are recorded for guidance, not as gates. Insurers decide on a
-        rollover case at their own desk, so a deal proceeds whatever these say — the guidance
-        opposite only tells you what to expect.
-      </p>
+      {/* Only for a new customer — for an existing one these are already known,
+          and offering them here would invite overwriting a record from a form
+          filled in to start a deal. */}
+      {picked ? null : (
+        <>
+          <Field label="Industry">
+            <Select name="industry" options={industries} placeholder="Not known yet" />
+          </Field>
+
+          <Field label="Constitution">
+            <Select name="entity_type" options={entityTypes} placeholder="Not known yet" />
+          </Field>
+
+          <p className="ff__hint" style={{ maxWidth: '58ch' }}>
+            Industry and constitution are recorded for guidance, not as gates. Insurers decide on a
+            rollover case at their own desk, so a deal proceeds whatever these say.
+          </p>
+        </>
+      )}
 
       {result && !result.ok ? (
         <p style={{ color: 'var(--plum-red-deep)', fontSize: 14 }}>{result.message}</p>

@@ -7,12 +7,14 @@ import { coverStartChip, describeCompany, formatCount, formatDate } from '@/lib/
 
 type DealRow = {
   id: string;
-  customer_name: string;
   current_phase: number;
-  industry: string | null;
-  entity_type: string | null;
-  location: string | null;
   cover_start_date: string | null;
+  customers: {
+    legal_name: string;
+    industry: string | null;
+    entity_type: string | null;
+    location: string | null;
+  } | null;
   owner_user_id: string;
   app_users: { name: string } | null;
   member_records: { count: number }[];
@@ -25,7 +27,7 @@ export default async function DealsPage() {
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, customer_name, current_phase, industry, entity_type, location, cover_start_date, owner_user_id, app_users!cases_owner_user_id_fkey(name), member_records(count)',
+      'id, current_phase, cover_start_date, owner_user_id, customers(legal_name, industry, entity_type, location), app_users!cases_owner_user_id_fkey(name), member_records(count)',
     )
     .order('cover_start_date', { ascending: true, nullsFirst: false })
     .returns<DealRow[]>();
@@ -65,9 +67,15 @@ export default async function DealsPage() {
                   return (
                     <tr key={deal.id}>
                       <td>
-                        <Link href={`/deals/${deal.id}`}>{deal.customer_name}</Link>
+                        <Link href={`/deals/${deal.id}`}>
+                          {deal.customers?.legal_name ?? 'Unnamed customer'}
+                        </Link>
                         <div className="cell-muted" style={{ fontSize: 12.5 }}>
-                          {describeCompany([deal.entity_type, deal.industry, deal.location])}
+                          {describeCompany([
+                            deal.customers?.entity_type,
+                            deal.customers?.industry,
+                            deal.customers?.location,
+                          ])}
                         </div>
                       </td>
                       <td>

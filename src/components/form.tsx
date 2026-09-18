@@ -29,22 +29,33 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className="ff__control" {...props} />;
 }
 
+/**
+ * Options are either plain strings, where the value and the label are the same
+ * thing (an industry, a constitution), or a value/label pair where they are
+ * not — a stored vocabulary like the cover-start reasons, whose values are
+ * snake_case identifiers that a person should never have to read.
+ */
+export type SelectOption = string | { value: string; label: string };
+
 export function Select({
   options,
   placeholder = 'Select…',
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
-  options: string[];
+  options: SelectOption[];
   placeholder?: string;
 }) {
   return (
     <select className="ff__control" {...props}>
       <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
+      {options.map((o) => {
+        const { value, label } = typeof o === 'string' ? { value: o, label: o } : o;
+        return (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        );
+      })}
     </select>
   );
 }

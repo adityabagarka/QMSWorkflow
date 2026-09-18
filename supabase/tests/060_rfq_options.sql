@@ -5,7 +5,7 @@ begin;
 select plan(10);
 
 create temporary table ox (who text primary key, id uuid default gen_random_uuid());
-insert into ox (who) values ('rm');
+insert into ox (who) values ('rm'), ('cust');
 create or replace function oxid(text) returns uuid language sql stable as
   $$ select id from ox where who = $1 $$;
 
@@ -18,8 +18,10 @@ on conflict (benefit_key) do nothing;
 insert into app_users (id, email, name, role, status)
 values (oxid('rm'), 'rm2@example.test', 'RM', 'consultant', 'active');
 
-insert into cases (id, customer_name, owner_user_id, cover_start_date)
-values ('aaaa1111-0000-0000-0000-000000000001', 'Option Test Ltd', oxid('rm'), '2026-11-01');
+insert into customers (id, legal_name) values (oxid('cust'), 'Option Test Ltd');
+
+insert into cases (id, customer_id, owner_user_id, cover_start_date)
+values ('aaaa1111-0000-0000-0000-000000000001', oxid('cust'), oxid('rm'), '2026-11-01');
 
 insert into policies (id, case_id) values
   ('bbbb1111-0000-0000-0000-000000000001', 'aaaa1111-0000-0000-0000-000000000001');

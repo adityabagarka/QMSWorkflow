@@ -72,6 +72,10 @@ jobs:
       # each zone, and requires the same answer from both.
       - run: npm run test:time
 
+      # Cover start is derived as expiry plus one day, which is where off-by-one
+      # bugs live — and a day out is a day of uninsured lives.
+      - run: npm run test:cover-start
+
       - name: Apply migrations
         run: npm run db:migrate
 

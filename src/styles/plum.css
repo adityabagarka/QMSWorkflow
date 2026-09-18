@@ -1685,3 +1685,120 @@ select.ff__control {
   align-items: center;
   gap: 14px;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Deal setup: sections, the customer picker, and the shift note           */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * A form long enough to need sections gets them as bands rather than as more
+ * headings: deal setup holds two different things — a company that outlives the
+ * deal, and the programme being rolled over — and a reader should be able to
+ * see where one ends without reading either.
+ */
+.formsec {
+  padding: 22px 0 4px;
+  border-top: 1px solid var(--line-lavender-2);
+}
+
+.formsec:first-of-type {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.formsec__title {
+  font-family: var(--font-sans);
+  font-size: var(--type-caption);
+  font-weight: var(--w-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--plum-red);
+  margin: 0 0 4px;
+}
+
+.formsec__note {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  margin: 0 0 16px;
+  max-width: 62ch;
+}
+
+/* The customer, once chosen: a fact about this deal rather than a field. */
+.picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--plum-red);
+  background: var(--sev-blush);
+}
+
+.picked__name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.picked__what {
+  font-size: 12.5px;
+  color: var(--fg-2);
+  margin-top: 2px;
+}
+
+/* Search results. Deliberately plain: these are things to recognise, not to
+   read, and anything decorative here slows that down. */
+.matches {
+  list-style: none;
+  margin: -12px 0 20px;
+  padding: 0;
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.matches li + li {
+  border-top: var(--hairline-thin) solid var(--line-lavender-2);
+}
+
+.matches button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.matches button:hover {
+  background: var(--sev-blush);
+}
+
+.matches__name {
+  display: block;
+  font-size: 14px;
+  color: var(--fg-1);
+}
+
+.matches__what {
+  display: block;
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+/*
+ * Why the inception moved. Tinted because it is an exception being recorded,
+ * not a field being filled — it only appears once the date has actually been
+ * shifted, and it should look like the consequence of that.
+ */
+.shiftnote {
+  margin-top: 4px;
+  padding: 16px 16px 4px;
+  border-left: 2px solid var(--plum-red);
+  background: var(--cream-warm);
+}

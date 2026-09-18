@@ -3,13 +3,15 @@ import type { DealHeader } from '@/components/deal-shell';
 
 type Raw = {
   id: string;
-  customer_name: string;
   current_phase: number;
-  industry: string | null;
-  entity_type: string | null;
   deal_type: string;
-  location: string | null;
   cover_start_date: string | null;
+  customers: {
+    legal_name: string;
+    industry: string | null;
+    entity_type: string | null;
+    location: string | null;
+  } | null;
   policies: {
     id: string;
     insurer_name: string | null;
@@ -37,7 +39,7 @@ export async function loadDealHeader(dealId: string): Promise<{
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, customer_name, current_phase, deal_type, industry, entity_type, location, cover_start_date, policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
+      'id, current_phase, deal_type, cover_start_date, customers(legal_name, industry, entity_type, location), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
     )
     .eq('id', dealId)
     .maybeSingle<Raw>();
@@ -54,11 +56,11 @@ export async function loadDealHeader(dealId: string): Promise<{
   return {
     header: {
       id: data.id,
-      customer_name: data.customer_name,
+      customer_name: data.customers?.legal_name ?? 'Unnamed customer',
       deal_type: data.deal_type,
-      industry: data.industry,
-      entity_type: data.entity_type,
-      location: data.location,
+      industry: data.customers?.industry ?? null,
+      entity_type: data.customers?.entity_type ?? null,
+      location: data.customers?.location ?? null,
       cover_start_date: data.cover_start_date,
       insurer_name: policy?.insurer_name ?? null,
       broker_name: policy?.broker_name ?? null,
