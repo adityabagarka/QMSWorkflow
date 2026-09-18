@@ -1,6 +1,13 @@
 -- 080_customers_and_cover_start.sql
 -- A customer is an entity (migration 0027), and a shifted cover start says why.
 --
+-- Every GSTIN here starts 99, which is not an allocated GST state code — they
+-- run 01 to 38 — so a fixture can never collide with a real taxpayer. This is
+-- the same reasoning as the @example.test addresses, and for the same reason:
+-- the suite used 27AABCM1234N1Z5, the app's own sample GSTIN, which migration
+-- 0028 had just moved into the real customers table on staging. The unique
+-- index did exactly what it is for and the deploy went red.
+--
 -- The visibility assertions are the ones that matter. Customers are readable by
 -- every active user, which is a deliberate departure from the span model that
 -- governs cases (§15) — so this suite has to prove that the departure is
@@ -33,7 +40,7 @@ insert into app_users (id, email, name, role, manager_id, status) values
   (cxid('outsider'), 'cust-outsider@example.test', 'Outsider', 'consultant',  cxid('super'), 'active');
 
 insert into customers (id, gstin, legal_name, entity_type, industry, location) values
-  (cxid('cust_a'), '27AABCM1234N1Z5', 'Meridian Synthetic Pvt Ltd', 'Pvt Ltd', 'Transport & Logistics', 'Pune'),
+  (cxid('cust_a'), '99AABCM1234N1Z5', 'Meridian Synthetic Pvt Ltd', 'Pvt Ltd', 'Transport & Logistics', 'Pune'),
   (cxid('cust_b'), null,              'Quotehub Synthetic Pvt Ltd', 'Pvt Ltd', 'Gems & Jewellery',      'Mumbai');
 
 insert into cases (id, customer_id, owner_user_id, policy_expiry_date, cover_start_date, cover_start_derived_date)
@@ -63,12 +70,12 @@ select is(
   'One customer carries more than one deal');
 
 select throws_ok(
-  $$ insert into customers (legal_name, gstin) values ('Impostor Ltd', '27AABCM1234N1Z5') $$,
+  $$ insert into customers (legal_name, gstin) values ('Impostor Ltd', '99AABCM1234N1Z5') $$,
   '23505', null,
   'Two customers cannot share a GSTIN — that is what stops the same company being created twice');
 
 select throws_ok(
-  $$ insert into customers (legal_name, gstin) values ('Lowercase Ltd', '27aabcx0000x1z9') $$,
+  $$ insert into customers (legal_name, gstin) values ('Lowercase Ltd', '99aabcx0000x1z9') $$,
   '23514', null,
   'A GSTIN is stored as printed, so a lowercase one cannot slip past the uniqueness check');
 
@@ -85,7 +92,7 @@ select throws_ok(
 -- printed on a policy. It happened on the first real deal created through
 -- this app, which is why it is a constraint rather than a validation.
 select throws_ok(
-  $$ insert into customers (legal_name) values ('27AABCM9999N1Z5') $$,
+  $$ insert into customers (legal_name) values ('99AABCM9999N1Z5') $$,
   '23514', null,
   'A GSTIN is not a company name, whatever was typed');
 

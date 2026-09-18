@@ -2297,3 +2297,72 @@ select.ff__control {
   font-size: 14px;
   margin-top: 3px;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Burn calculation                                                        */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * Bordered and chipped as an estimate, because it is one and will be for as
+ * long as any input rests on an assumption. ADR 0011 rule 7: otherwise "back
+ * of the envelope" becomes "the number we quoted" by nothing more than time
+ * passing.
+ */
+.burn {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  padding: 18px 20px;
+  margin-top: 16px;
+}
+
+.burn__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.burn__label {
+  display: block;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+}
+
+.burn__figure {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: var(--track-display);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.burn__gst {
+  display: block;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  margin-top: 3px;
+}
+
+.burn__move {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  color: var(--fg-2);
+}
+
+.burn__caveats {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--cream-warm);
+  border-left: 2px solid var(--plum-red);
+}
+
+.burn__caveats-head {
+  margin: 0 0 6px;
+  font-size: var(--type-caption);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--plum-red);
+}

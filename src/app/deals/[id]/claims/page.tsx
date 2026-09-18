@@ -7,7 +7,8 @@ import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { formatCount } from '@/lib/format';
-import { previewClaims } from './actions';
+import { previewClaims, burnFor } from './actions';
+import { BurnPanel } from './burn-panel';
 import { ClaimsReview, METRIC_LABELS, formatMetric } from './claims-review';
 import { ReconcileRow, type Reconciliation } from './reconcile';
 
@@ -40,6 +41,7 @@ export default async function ClaimsStep({ params }: { params: { id: string } })
 
   const isLoaded = (claimCount ?? 0) > 0;
   const preview = isLoaded ? null : await previewClaims(params.id);
+  const burn = isLoaded ? await burnFor(params.id) : null;
 
   const reconciliations = recon ?? [];
   const outstanding = reconciliations.filter((r) => !r.chosen);
@@ -111,6 +113,13 @@ export default async function ClaimsStep({ params }: { params: { id: string } })
                     ))}
                   </tbody>
                 </table>
+              </>
+            ) : null}
+
+            {burn ? (
+              <>
+                <h3 style={{ marginTop: 32 }}>What this looks like it should cost</h3>
+                <BurnPanel view={burn} />
               </>
             ) : null}
 

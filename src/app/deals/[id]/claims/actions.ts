@@ -14,6 +14,12 @@ import {
   type Discrepancy,
   type StatedFigure,
 } from '@/lib/parsing/claims';
+import {
+  BURN_DEFAULTS,
+  comparedWithExpiring,
+  computeBurn,
+  type BurnInputs,
+} from '@/lib/members/burn';
 
 export type ClaimsPreview =
   | {
@@ -279,4 +285,158 @@ export async function resolveDiscrepancy(
 
   revalidatePath(`/deals/${dealId}/claims`);
   return { ok: true };
+}
+
+export type BurnView = {
+  burn: ReturnType<typeof computeBurn>;
+  comparison: ReturnType<typeof comparedWithExpiring>;
+  inputs: BurnInputs;
+  /** True while any input still rests on something nobody has confirmed. */
+  isEstimate: boolean;
+  estimateReasons: string[];
+};
+
+/**
+ * The burn, from whatever is known so far.
+ *
+ * Deliberately computed from partial data rather than refusing until everything
+ * is in: the point of a burn is to decide whether a deal is worth chasing, and
+ * that decision is made early (ADR 0011 rule 6). What it must never do is look
+ * settled while it rests on unconfirmed inputs — so every reason it is still an
+ * estimate travels with it (rule 7).
+ */
+export async function burnFor(
+  dealId: string,
+  overrides?: Partial<BurnInputs>,
+): Promise<BurnView | null> {
+  const session = await getSession();
+  if (!session || session.status !== 'active') return null;
+
+  const supabase = supabaseServer();
+
+  const [{ data: deal }, { count: lives }, { data: figures }, { data: unresolved }] =
+    await Promise.all([
+      supabase
+        .from('cases')
+        .select('policies(policy_start, policy_end, expiring_premium)')
+        .eq('id', dealId)
+        .maybeSingle<{
+          policies: {
+            policy_start: string | null;
+            policy_end: string | null;
+            expiring_premium: number | null;
+          }[];
+        }>(),
+      supabase
+        .from('member_records')
+        .select('id', { count: 'exact', head: true })
+        .eq('case_id', dealId),
+      supabase
+        .from('claims_stated_figures')
+        .select('metric, value')
+        .eq('case_id', dealId)
+        .returns<{ metric: string; value: number }[]>(),
+      supabase
+        .from('claims_reconciliations')
+        .select('metric, chosen, chosen_value')
+        .eq('case_id', dealId)
+        .returns<{ metric: string; chosen: string | null; chosen_value: number | null }[]>(),
+    ]);
+
+  const policy = deal?.policies?.[0] ?? null;
+
+  // Settled plus outstanding is what the period has cost. A reconciled figure
+  // wins over the computed one — that is what the decision was for.
+  const figure = (metric: string): number => {
+    const decided = (unresolved ?? []).find((r) => r.metric === metric && r.chosen);
+    if (decided?.chosen_value !== null && decided?.chosen_value !== undefined) {
+      return decided.chosen_value;
+    }
+    return (figures ?? []).find((f) => f.metric === metric)?.value ?? 0;
+  };
+
+  const incurredClaims = figure('amount_settled') + figure('amount_outstanding');
+  const livesCovered = lives ?? 0;
+
+  const months =
+    policy?.policy_start && policy?.policy_end
+      ? Math.max(
+          1,
+          Math.round(
+            (Date.parse(`${policy.policy_end}T00:00:00Z`) -
+              Date.parse(`${policy.policy_start}T00:00:00Z`)) /
+              (30.44 * 86_400_000),
+          ),
+        )
+      : 12;
+
+  const inputs: BurnInputs = {
+    incurredClaims,
+    livesCovered,
+    livesQuoted: livesCovered,
+    monthsObserved: months,
+    ...BURN_DEFAULTS,
+    ...overrides,
+  };
+
+  const reasons: string[] = [];
+  if (incurredClaims === 0) reasons.push('no claims figures loaded');
+  if (livesCovered === 0) reasons.push('no member roster loaded');
+  if ((unresolved ?? []).some((r) => !r.chosen)) {
+    reasons.push('a claims figure is still disputed between the MIS and the dump');
+  }
+  if (!policy?.policy_start || !policy?.policy_end) {
+    reasons.push('the expiring policy period is not set, so a full year is assumed');
+  }
+  // The assumptions themselves are always an estimate: §18 leaves IBNR and the
+  // outlier threshold open, and nothing here decides them.
+  reasons.push('IBNR and inflation are working assumptions, not agreed figures');
+
+  const burn = computeBurn(inputs);
+
+  return {
+    burn,
+    comparison: burn
+      ? comparedWithExpiring(burn.indicativePremium, policy?.expiring_premium ?? null)
+      : null,
+    inputs,
+    isEstimate: true,
+    estimateReasons: reasons,
+  };
+}
+
+/** Keeps a run. §10 wants every one retained, so this only ever appends. */
+export async function saveBurn(dealId: string): Promise<void> {
+  const session = await getSession();
+  if (!session || session.status !== 'active') return;
+
+  const view = await burnFor(dealId);
+  if (!view?.burn) return;
+
+  const supabase = supabaseServer();
+  await supabase.from('burn_calculations').insert({
+    case_id: dealId,
+    incurred_claims: view.inputs.incurredClaims,
+    ibnr_pct: view.inputs.ibnrPct,
+    annualised_claims: view.burn.annualisedClaims,
+    weighted_average_lives: view.inputs.livesCovered,
+    per_life_claims_cost: view.burn.perLifeClaimsCost,
+    inflation_pct: view.inputs.inflationPct,
+    lives_quoted: view.inputs.livesQuoted,
+    tpa_fee_pct: view.inputs.tpaFeePct,
+    brokerage_pct: view.inputs.brokeragePct,
+    insurer_opex_pct: view.inputs.insurerOpexPct,
+    indicative_premium: view.burn.indicativePremium,
+    computed_by: session.userId,
+  });
+
+  await supabase.from('case_events').insert({
+    case_id: dealId,
+    event_type: 'burn_calculated',
+    actor_type: 'user',
+    actor_id: session.userId,
+    payload: { indicative_premium: view.burn.indicativePremium, estimate: true },
+  });
+
+  revalidatePath(`/deals/${dealId}/claims`);
 }

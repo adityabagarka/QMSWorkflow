@@ -8,7 +8,7 @@ import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { formatCount, formatDate } from '@/lib/format';
 import { summariseRoster } from '@/lib/parsing/roster';
-import { previewRoster } from './actions';
+import { previewRoster, detectDeviations } from './actions';
 import { RosterReview } from './roster-review';
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
@@ -37,6 +37,20 @@ export default async function MembersStep({ params }: { params: { id: string } }
 
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
+
+  // Re-runnable on purpose: terms are often confirmed after the roster lands,
+  // and corrected after that.
+  async function runDeviationCheck() {
+    'use server';
+    await detectDeviations(params.id);
+  }
+
+  const { data: deviations } = await supabase
+    .from('member_deviations')
+    .select('benefit_key, detail, is_continuation')
+    .eq('case_id', params.id)
+    .eq('source', 'expiring_policy')
+    .returns<{ benefit_key: string; detail: string; is_continuation: boolean }[]>();
 
   const { data: stored } = await supabase
     .from('member_records')
@@ -135,7 +149,48 @@ export default async function MembersStep({ params }: { params: { id: string } }
               </p>
             ) : null}
 
-            <p style={{ marginTop: 28 }}>
+            {deviations && deviations.length > 0 ? (
+              <>
+                <h3 style={{ marginTop: 32 }}>Outside the expiring terms</h3>
+                <p className="ff__hint" style={{ maxWidth: '64ch' }}>
+                  These lives stay on the roster and go to the insurer as disclosed exceptions. A
+                  life already on cover is a continuation — the insurer is being asked to carry
+                  somebody they already carry.
+                </p>
+                <ul className="issues issues--soft">
+                  {Object.entries(
+                    deviations.reduce<
+                      Record<string, { count: number; continuations: number; detail: string }>
+                    >((acc, d) => {
+                      const at = (acc[d.benefit_key] ??= {
+                        count: 0,
+                        continuations: 0,
+                        detail: d.detail,
+                      });
+                      at.count += 1;
+                      if (d.is_continuation) at.continuations += 1;
+                      return acc;
+                    }, {}),
+                  ).map(([key, group]) => (
+                    <li key={key}>
+                      <span className="issues__row">{formatCount(group.count)}</span>
+                      {group.detail}
+                      {group.continuations === group.count ? ' All continuations.' : ''}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+
+            <form action={runDeviationCheck} style={{ marginTop: 28 }}>
+              <button className="button button--secondary" type="submit">
+                {deviations && deviations.length > 0
+                  ? 'check against the terms again'
+                  : 'check against the expiring terms'}
+              </button>
+            </form>
+
+            <p style={{ marginTop: 20 }}>
               <Link href={stageHref(header.id, 0)}>Upload a corrected roster</Link> to replace this.
             </p>
           </div>

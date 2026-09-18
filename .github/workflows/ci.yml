@@ -80,6 +80,10 @@ jobs:
       # arrive: a title above the headers, lakh grouping, dd/mm/yyyy dates.
       - run: npm run test:parsing
 
+      # Nobody is dropped from a roster, and loadings come out of the premium
+      # rather than onto the claims. Both are easy to break later.
+      - run: npm run test:members
+
       # The RFQ workbook, read back after writing: this is the file that
       # leaves the building and an insurer issues a policy from it.
       - run: npm run test:rfq

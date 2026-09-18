@@ -114,9 +114,9 @@ async function main() {
   // Exactly what a person made: a GSTIN pasted where a name belongs. Plus the
   // nastier shape, where a real customer already holds that GSTIN.
   await client.query(`
-    insert into customers (legal_name, gstin) values ('Meridian Synthetic Pvt Ltd', '27AABCM1234N1Z5');
-    insert into customers (legal_name) values ('27aabcm1234n1Z5');
-    insert into customers (legal_name) values ('29AABCN9876P1Z3');
+    insert into customers (legal_name, gstin) values ('Meridian Synthetic Pvt Ltd', '99AABCM1234N1Z5');
+    insert into customers (legal_name) values ('99aabcm1234n1Z5');
+    insert into customers (legal_name) values ('99AABCN9876P1Z3');
   `);
   await client.end();
 
@@ -143,7 +143,7 @@ async function main() {
 
   await check('a GSTIN nobody else held moved into the column it belongs in', async () => {
     const { rows } = await after.query(
-      `select legal_name from customers where gstin = '29AABCN9876P1Z3'`,
+      `select legal_name from customers where gstin = '99AABCN9876P1Z3'`,
     );
     assert.equal(rows.length, 1);
     assert.equal(rows[0].legal_name, 'Name not captured');
@@ -151,7 +151,7 @@ async function main() {
 
   await check('a GSTIN another customer already held is NOT taken from them', async () => {
     const { rows } = await after.query(
-      `select legal_name from customers where gstin = '27AABCM1234N1Z5'`,
+      `select legal_name from customers where gstin = '99AABCM1234N1Z5'`,
     );
     assert.equal(rows.length, 1, 'exactly one customer may hold a GSTIN');
     assert.equal(

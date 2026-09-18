@@ -21,7 +21,7 @@ long as nobody had signed in with it, then failed the moment someone did — on 
 _correct_ refusal by the code. The test was asserting that a real person did not
 exist.
 
-This has now bitten four times, in four different shapes:
+This has now bitten five times, in five different shapes:
 
 1. **Deploy #4** — the suite provisioned the real bootstrap address, and broke
    the moment somebody signed in with it.
@@ -44,8 +44,22 @@ This has now bitten four times, in four different shapes:
    suite** — the job was red for an unrelated reason, which read as "CI is
    broken" rather than "these proofs are not happening".
 
-The general rule, which covers all four: **an assertion must be about the
-fixtures, never about the database.** Concretely, counts are scoped to fixture
+5. **A fixture GSTIN that was a real one.** `080` created a customer with
+   `27AABCM1234N1Z5` — the app's own sample GSTIN, and therefore the one the
+   first real deal was created with. Migration 0028 moved it out of that
+   customer's name and into its `gstin` column, the unique index did exactly
+   what it is for, and the staging deploy went red.
+
+   Fixtures now use GSTINs beginning **99**, which is not an allocated GST
+   state code — they run 01 to 38 — so a fixture identifier cannot collide with
+   a real taxpayer. Same reasoning as `@example.test`, applied to the other
+   identifier this system stores.
+
+The general rule, which covers all five: **an assertion must be about the
+fixtures, never about the database.** It extends to the identifiers a fixture
+uses: an email, a GSTIN, or anything else the schema makes unique has to come
+from a range that can never be real, or the fixture is a claim about what the
+database does not contain. Concretely, counts are scoped to fixture
 rows (`where owner_user_id in (select id from ids)`), never taken over a whole
 table. "An Admin sees every fixture case" is a guarantee; "the system contains
 six cases" is a measurement of production.

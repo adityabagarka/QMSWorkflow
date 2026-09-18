@@ -6,6 +6,8 @@ import { getSession } from '@/lib/auth/session';
 import { loadDocument, readStoredSheet } from '@/lib/cases/read-document';
 import { matchColumns, MEMBER_FIELDS, overrideMapping } from '@/lib/parsing/columns';
 import { readRoster, summariseRoster, type RosterResult } from '@/lib/parsing/roster';
+import { findDeviations, type GoverningTerms } from '@/lib/members/deviations';
+import type { Relationship } from '@/lib/parsing/values';
 
 export type RosterPreview =
   | { ok: true; result: RosterResult; headers: string[]; fileName: string }
@@ -150,4 +152,103 @@ export async function loadRoster(
 
   revalidatePath(`/deals/${dealId}/members`);
   return { ok: true, loaded: rows.length };
+}
+
+/**
+ * Runs the deviation check against the expiring policy's terms.
+ *
+ * Separate from loading the roster because the terms may be confirmed after
+ * the roster arrives, or corrected afterwards — so this is re-runnable, and
+ * re-running replaces rather than accumulates.
+ */
+export async function detectDeviations(
+  dealId: string,
+): Promise<{ ok: true; found: number } | { ok: false; message: string }> {
+  const session = await getSession();
+  if (!session || session.status !== 'active') {
+    return { ok: false, message: 'Your access is not active.' };
+  }
+
+  const supabase = supabaseServer();
+
+  const { data: policy } = await supabase
+    .from('policies')
+    .select('id')
+    .eq('case_id', dealId)
+    .maybeSingle<{ id: string }>();
+
+  if (!policy) {
+    return { ok: false, message: 'There is no expiring policy to check the roster against.' };
+  }
+
+  const [{ data: terms }, { data: members }] = await Promise.all([
+    supabase
+      .from('policy_terms')
+      .select('benefit_key, value')
+      .eq('policy_id', policy.id)
+      .returns<{ benefit_key: string; value: string | null }[]>(),
+    supabase
+      .from('member_records')
+      .select('id, relationship, age, name_clean, employee_id')
+      .eq('case_id', dealId)
+      .returns<
+        {
+          id: string;
+          relationship: string | null;
+          age: number | null;
+          name_clean: string | null;
+          employee_id: string | null;
+        }[]
+      >(),
+  ]);
+
+  const governing: GoverningTerms = {};
+  for (const t of terms ?? []) governing[t.benefit_key] = t.value;
+
+  const found = findDeviations(
+    (members ?? []).map((m) => ({
+      id: m.id,
+      relationship: m.relationship as Relationship | null,
+      age: m.age,
+      name: m.name_clean,
+      employeeId: m.employee_id,
+    })),
+    governing,
+    'expiring_policy',
+  );
+
+  // Replace this source's rows only. Deviations found against the RFQ's own
+  // terms are a separate pass and must survive a re-run of this one.
+  await supabase
+    .from('member_deviations')
+    .delete()
+    .eq('case_id', dealId)
+    .eq('source', 'expiring_policy');
+
+  if (found.length > 0) {
+    const { error } = await supabase.from('member_deviations').insert(
+      found.map((d) => ({
+        case_id: dealId,
+        member_record_id: d.memberId,
+        benefit_key: d.benefitKey,
+        source: 'expiring_policy',
+        expected_value: d.expectedValue,
+        actual_value: d.actualValue,
+        detail: d.detail,
+        is_continuation: d.isContinuation,
+      })),
+    );
+    if (error) return { ok: false, message: error.message };
+  }
+
+  await supabase.from('case_events').insert({
+    case_id: dealId,
+    event_type: 'member_deviations_detected',
+    actor_type: 'user',
+    actor_id: session.userId,
+    payload: { found: found.length, continuations: found.filter((d) => d.isContinuation).length },
+  });
+
+  revalidatePath(`/deals/${dealId}/members`);
+  return { ok: true, found: found.length };
 }

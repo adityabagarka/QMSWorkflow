@@ -25,6 +25,7 @@
     "verify": "bash scripts/verify.sh",
     "test:migrations": "tsx scripts/__tests__/migrations-against-dirty-data.ts",
     "test:rfq": "tsx scripts/__tests__/rfq-workbook.ts",
+    "test:members": "tsx scripts/__tests__/members-and-burn.ts",
     "test:parsing": "tsx scripts/__tests__/parsing.ts",
     "test:cover-start": "tsx scripts/__tests__/cover-start.ts",
     "test:fonts": "cd docs/design-review && node font-roles.mjs",
