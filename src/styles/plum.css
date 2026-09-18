@@ -87,8 +87,8 @@
    * as the deployed app. The Georgia/system-ui tails are the flash-of-unstyled
    * fallback only.
    */
-  --font-display: var(--font-newsreader), Georgia, serif;
-  --font-sans: var(--font-hanken), system-ui, sans-serif;
+  --font-display: var(--font-newsreader, Georgia), Georgia, serif;
+  --font-sans: var(--font-hanken, system-ui), system-ui, sans-serif;
 
   --type-hero: clamp(38px, 6vw, 64px);
   --type-h2: clamp(26px, 3.5vw, 40px);
@@ -658,8 +658,8 @@ input[type='text'] {
 .empty {
   padding: 48px 0;
   color: var(--fg-muted);
-  font-family: var(--font-display);
-  font-size: 18px;
+  font-family: var(--font-sans);
+  font-size: 15px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -888,9 +888,11 @@ input[type='text'] {
   text-align: center;
 }
 
+/* The label on a control, so it is set like the rest of the UI. */
 .drop__big {
-  font-family: var(--font-display);
-  font-size: 18px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: var(--w-medium);
 }
 
 /* The policy, beside the terms it describes. */
@@ -1344,10 +1346,17 @@ input[type='text'] {
   padding-top: 3px;
 }
 
+/*
+ * Sans, not the display serif. These are field values read back — a company
+ * name, a constitution, a date — and the serif is reserved for headlines and
+ * stat figures (docs/plum-design.md). Setting a form's answers in it made a
+ * read-only step look like an article about the deal rather than a record of
+ * it, and made the values compete with the step's own heading.
+ */
 .detail-list dd {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 18px;
+  font-family: var(--font-sans);
+  font-size: 15px;
   color: var(--fg-1);
 }
 

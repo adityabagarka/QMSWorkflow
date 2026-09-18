@@ -22,6 +22,7 @@
     "test:parse": "tsx scripts/__tests__/parse-connection-string.ts",
     "db:check": "tsx scripts/check-connection.ts",
     "test:routes": "tsx scripts/__tests__/wizard-routes.ts",
+    "test:fonts": "cd docs/design-review && node font-roles.mjs",
     "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts"
   },
   "dependencies": {
