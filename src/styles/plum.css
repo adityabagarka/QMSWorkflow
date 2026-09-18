@@ -2226,3 +2226,74 @@ select.ff__control {
   font-size: 12.5px;
   color: var(--plum-red-deep);
 }
+
+/* ---------------------------------------------------------------------- */
+/* RFQ                                                                     */
+/* ---------------------------------------------------------------------- */
+
+/*
+ * What is holding the RFQ, each with the way to go and fix it.
+ *
+ * A list of reasons with no route to any of them is a wall; the link is what
+ * makes it a checklist.
+ */
+.blockers {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  border: 1px solid var(--plum-red);
+}
+
+.blockers li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  background: var(--cream-deep);
+  border-bottom: var(--hairline-thin) solid var(--line-lavender-2);
+}
+
+.blockers li:last-child {
+  border-bottom: 0;
+}
+
+.optpick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.optpick__one {
+  display: block;
+  padding: 13px 15px;
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  color: inherit;
+}
+
+.optpick__one:hover {
+  text-decoration: none;
+  border-color: var(--plum-red);
+}
+
+.optpick__one.is-picked {
+  border-color: var(--plum-red);
+  background: var(--sev-blush);
+}
+
+.optpick__no {
+  display: block;
+  font-size: var(--type-caption);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--plum-red);
+}
+
+.optpick__name {
+  display: block;
+  font-size: 14px;
+  margin-top: 3px;
+}

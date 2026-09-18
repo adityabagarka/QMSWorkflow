@@ -112,31 +112,26 @@ select is(
   'and the figure that goes forward is recorded, not recomputed later');
 
 -- --------------------------------------------------------------------------
--- The RFQ gate reports every reason it is shut, not just the first.
+-- The RFQ gate answers for this blocker specifically.
+--
+-- Only this one. The full blocker list belongs to 110_rfq_gate, and asserting
+-- it here as well would mean every future blocker breaks two suites — which is
+-- exactly what happened when 0031 added terms, member data and options to it.
 -- --------------------------------------------------------------------------
-select is(
-  app.rfq_blockers('ffff0000-0000-0000-0000-000000000001'),
-  array['documents'],
-  'With claims settled but no documents, only the documents are outstanding');
-
-insert into case_documents (case_id, kind, file_ref, file_name, uploaded_by) values
-  ('ffff0000-0000-0000-0000-000000000001', 'policy_copy', 'a', 'p.pdf',  rxid('rm')),
-  ('ffff0000-0000-0000-0000-000000000001', 'member_data', 'b', 'm.xlsx', rxid('rm')),
-  ('ffff0000-0000-0000-0000-000000000001', 'claims_dump', 'c', 'c.xlsx', rxid('rm')),
-  ('ffff0000-0000-0000-0000-000000000001', 'claims_mis',  'd', 'i.pdf',  rxid('rm'));
-
-select is(
-  app.rfq_blockers('ffff0000-0000-0000-0000-000000000001'),
-  array[]::text[],
-  'With both settled, nothing blocks the RFQ');
+select ok(
+  not ('claims_reconciliation' = any(app.rfq_blockers('ffff0000-0000-0000-0000-000000000001'))),
+  'With the disagreement settled, claims are not among the reasons the RFQ is held');
 
 update claims_reconciliations
    set chosen = null, chosen_value = null, decided_by = null, decided_at = null, note = null;
 
-select is(
-  app.rfq_blockers('ffff0000-0000-0000-0000-000000000001'),
-  array['claims_reconciliation'],
-  'Reopening the disagreement shuts the gate again, on its own account');
+select ok(
+  'claims_reconciliation' = any(app.rfq_blockers('ffff0000-0000-0000-0000-000000000001')),
+  'Reopening it puts claims back among them');
+
+select ok(
+  not app.claims_reconciled('ffff0000-0000-0000-0000-000000000001'),
+  'which is the same answer the gate function gives on its own');
 
 -- --------------------------------------------------------------------------
 -- A reconciliation is as private as its deal.

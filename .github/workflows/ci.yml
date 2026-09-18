@@ -80,6 +80,10 @@ jobs:
       # arrive: a title above the headers, lakh grouping, dd/mm/yyyy dates.
       - run: npm run test:parsing
 
+      # The RFQ workbook, read back after writing: this is the file that
+      # leaves the building and an insurer issues a policy from it.
+      - run: npm run test:rfq
+
       - name: Apply migrations
         run: npm run db:migrate
 

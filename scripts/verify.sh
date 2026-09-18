@@ -36,6 +36,7 @@ step "wizard routes"      npm run test:routes
 step "india time"         npm run test:time
 step "cover start"        npm run test:cover-start
 step parsers              npm run test:parsing
+step "rfq workbook"       npm run test:rfq
 step typefaces            npm run test:fonts
 
 if [ -n "${DATABASE_URL:-}" ]; then
