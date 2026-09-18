@@ -76,6 +76,10 @@ jobs:
       # bugs live — and a day out is a day of uninsured lives.
       - run: npm run test:cover-start
 
+      # The spreadsheet parsers, against files shaped like the ones that
+      # arrive: a title above the headers, lakh grouping, dd/mm/yyyy dates.
+      - run: npm run test:parsing
+
       - name: Apply migrations
         run: npm run db:migrate
 
