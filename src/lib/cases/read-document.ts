@@ -75,3 +75,25 @@ export async function loadDocument(
 
   return data;
 }
+
+/**
+ * The raw bytes of a stored document.
+ *
+ * Separate from `readStoredSheet` because the policy copy is not a sheet: it
+ * goes to the reader as a PDF, whole, rather than being flattened into rows.
+ */
+export async function readStoredFile(
+  doc: StoredDocument,
+): Promise<{ ok: true; bytes: ArrayBuffer } | { ok: false; message: string }> {
+  const supabase = supabaseServer();
+
+  const { data, error } = await supabase.storage.from(BUCKET).download(doc.file_ref);
+  if (error || !data) {
+    return {
+      ok: false,
+      message: `The file could not be read back: ${error?.message ?? 'missing'}`,
+    };
+  }
+
+  return { ok: true, bytes: await data.arrayBuffer() };
+}

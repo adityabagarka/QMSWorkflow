@@ -87,6 +87,7 @@ jobs:
       # The RFQ workbook, read back after writing: this is the file that
       # leaves the building and an insurer issues a policy from it.
       - run: npm run test:rfq
+      - run: npm run test:extraction
 
       - name: Apply migrations
         run: npm run db:migrate

@@ -38,6 +38,7 @@ step "cover start"        npm run test:cover-start
 step parsers              npm run test:parsing
 step "deviations + burn"  npm run test:members
 step "rfq workbook"       npm run test:rfq
+step "policy reader"      npm run test:extraction
 step typefaces            npm run test:fonts
 
 if [ -n "${DATABASE_URL:-}" ]; then

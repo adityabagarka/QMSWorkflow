@@ -30,9 +30,11 @@
     "test:parsing": "tsx scripts/__tests__/parsing.ts",
     "test:cover-start": "tsx scripts/__tests__/cover-start.ts",
     "test:fonts": "cd docs/design-review && node font-roles.mjs",
-    "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts"
+    "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts",
+    "test:extraction": "tsx scripts/__tests__/policy-extraction.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.126.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.4",
     "next": "^14.2.15",
@@ -47,10 +49,10 @@
     "@types/react-dom": "^18.3.0",
     "dotenv": "^16.4.5",
     "eslint": "^8.57.1",
-    "playwright": "^1.63.0",
     "eslint-config-next": "^14.2.15",
     "exceljs": "^4.4.0",
     "pg": "^8.13.0",
+    "playwright": "^1.63.0",
     "prettier": "^3.3.3",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"

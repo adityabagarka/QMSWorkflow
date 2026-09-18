@@ -46,15 +46,23 @@ insert into benefit_catalogue (benefit_key, display_order, section, benefit_labe
   ('maternity_cover', 45, 'Mother & Child', 'Maternity Cover')
 on conflict (benefit_key) do nothing;
 
--- Three terms across two sections, as an extraction would leave them.
-insert into policy_terms (case_id, policy_id, benefit_key, value, source, extraction_confidence)
+-- Three terms across two sections, as an extraction would leave them: a value,
+-- a confidence, and the clause it was read from. The quote is not decoration —
+-- 0032 requires it of an extracted term that carries a value, because a value
+-- nobody can trace is not something a reviewer can confirm.
+insert into policy_terms
+  (case_id, policy_id, benefit_key, value, source, extraction_confidence,
+   evidence_quote, evidence_page)
 values
   ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222',
-   'members_covered', 'Employee, Spouse, Children', 'extracted', 0.94),
+   'members_covered', 'Employee, Spouse, Children', 'extracted', 0.94,
+   'The Policy covers the Employee, Spouse and up to two Dependent Children.', 3),
   ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222',
-   'max_age_parents', '80', 'extracted', 0.41),
+   'max_age_parents', '80', 'extracted', 0.41,
+   'Dependent Parents may be enrolled up to 80 years of age.', 4),
   ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222',
-   'room_rent_limit_normal_room', 'Single private AC room', 'extracted', 0.67);
+   'room_rent_limit_normal_room', 'Single private AC room', 'extracted', 0.67,
+   'Room rent is limited to a Single Private Air-Conditioned Room.', 7);
 
 -- --------------------------------------------------------------------------
 -- A blank policy is not complete.

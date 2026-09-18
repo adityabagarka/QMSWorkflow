@@ -7,6 +7,16 @@ import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { TermsGrid, type ChangeKind, type OptionColumn, type TermRow } from './terms-grid';
 import { PolicyPanel } from './policy-panel';
+import { ExtractPanel } from './extract-panel';
+import { extractionConfigured } from '@/lib/extraction/policy';
+
+type TermRecord = {
+  benefit_key: string;
+  value: string | null;
+  review_status: string;
+  evidence_quote: string | null;
+  evidence_page: number | null;
+};
 
 export default async function TermsPage({ params }: { params: { id: string } }) {
   const session = await requireActiveSession();
@@ -27,12 +37,10 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
     policyId
       ? supabase
           .from('policy_terms')
-          .select('benefit_key, value, review_status')
+          .select('benefit_key, value, review_status, evidence_quote, evidence_page')
           .eq('policy_id', policyId)
-          .returns<{ benefit_key: string; value: string | null; review_status: string }[]>()
-      : Promise.resolve({
-          data: [] as { benefit_key: string; value: string | null; review_status: string }[],
-        }),
+          .returns<TermRecord[]>()
+      : Promise.resolve({ data: [] as TermRecord[] }),
     supabase
       .from('rfq_options')
       .select('id, option_no, name')
@@ -51,13 +59,15 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
           change_kind_override: ChangeKind | null;
         }[]
       >(),
+    // The documents step writes `case_documents`; `policy_documents` predates
+    // it and nothing fills it, so reading that here showed "no policy copy"
+    // beside a policy that had been uploaded twenty minutes earlier.
     supabase
-      .from('policy_documents')
-      .select('id, file_ref, doc_type')
+      .from('case_documents')
+      .select('id, file_ref, file_name')
       .eq('case_id', header.id)
-      .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .returns<{ id: string; file_ref: string; doc_type: string }[]>(),
+      .eq('kind', 'policy_copy')
+      .maybeSingle<{ id: string; file_ref: string; file_name: string }>(),
   ]);
 
   const termByKey = new Map((terms.data ?? []).map((t) => [t.benefit_key, t]));
@@ -111,6 +121,8 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
       label: b.benefit_label,
       expiring,
       reviewed: Boolean(term && term.review_status !== 'proposed'),
+      evidence: term?.evidence_quote ?? null,
+      evidencePage: term?.evidence_page ?? null,
       cells,
     };
   });
@@ -123,7 +135,7 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
 
   const confirmed = rows.filter((r) => r.reviewed).length;
   const outstanding = rows.length - confirmed;
-  const policyDoc = docs.data?.[0] ?? null;
+  const policyDoc = docs.data ?? null;
 
   return (
     <main className="shell shell--wide">
@@ -158,6 +170,13 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
           </div>
         }
       >
+        <ExtractPanel
+          dealId={header.id}
+          fileName={policyDoc?.file_name ?? null}
+          configured={extractionConfigured()}
+          alreadyRead={rows.some((r) => r.evidence !== null)}
+        />
+
         {optionColumns.length === 0 ? (
           <p className="empty">
             No options yet. Option 1 is the expiring terms unchanged; add more to vary them.

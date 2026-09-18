@@ -1257,6 +1257,127 @@ input[type='text'] {
   font-size: 12.5px;
 }
 
+/* ── The clause a proposed term was read from ────────────────────────────── */
+
+/* Set quieter than the value and hanging below it: the value is what you are
+   deciding about, the quote is what you check it against. Clamped to three
+   lines so one verbose clause cannot push a fifty-row grid off the screen —
+   the whole policy sits in the panel alongside for the rest. */
+.terms__evidence {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 6px;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.terms__page {
+  display: block;
+  margin-top: 3px;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ── Reading the policy copy ─────────────────────────────────────────────── */
+
+.extract {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  border-radius: var(--radius-md, 10px);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+}
+
+.extract--quiet {
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 68ch;
+}
+
+.extract__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.extract__what {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fg-1);
+}
+
+.extract__why {
+  margin-top: 4px;
+  max-width: 62ch;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.extract__bad {
+  margin: 14px 0 0;
+  color: var(--plum-red-deep);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.extract__done {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-lavender);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg-1);
+}
+
+.extract__done p {
+  margin: 0;
+}
+
+/* A disagreement with a term somebody already reviewed is the one thing on
+   this panel that asks for a decision, so it is the one thing marked. */
+.extract__clash {
+  margin-top: 12px;
+  border-left: 2px solid var(--plum-red);
+  padding-left: 12px;
+}
+
+.extract__clash ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.extract__clash li {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  border-top: 1px solid var(--line-lavender);
+}
+
+.extract__key {
+  min-width: 190px;
+  color: var(--fg-1);
+  font-variant-numeric: tabular-nums;
+}
+
 .terms__addopt {
   border: 1px solid var(--line-lavender);
   background: var(--cream-deep);

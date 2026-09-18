@@ -17,6 +17,9 @@ export type TermRow = {
   label: string;
   expiring: string | null;
   reviewed: boolean;
+  /** The clause this value was read from, when a model read it. */
+  evidence: string | null;
+  evidencePage: number | null;
   cells: Record<string, OptionCell>;
 };
 
@@ -135,6 +138,21 @@ export function TermsGrid({
                         <div className="terms__cell terms__cell--label">{row.label}</div>
                         <div className="terms__cell">
                           {row.expiring ?? <span className="terms__unset">not confirmed</span>}
+                          {/* A value a model proposed shows the clause it came
+                              from. Confirming a term means agreeing with the
+                              policy, which you cannot do without seeing what
+                              the policy said. */}
+                          {row.evidence ? (
+                            <>
+                              <span className="terms__evidence">“{row.evidence}”</span>
+                              {/* Outside the clamped quote: a long clause hides
+                                  its own last line, and the page number is the
+                                  part that has to survive to be useful. */}
+                              {row.evidencePage ? (
+                                <span className="terms__page">page {row.evidencePage}</span>
+                              ) : null}
+                            </>
+                          ) : null}
                         </div>
                         {options.map((o) => {
                           const cell = row.cells[o.id];
