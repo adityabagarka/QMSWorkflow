@@ -45,6 +45,7 @@ if [ -n "${DATABASE_URL:-}" ]; then
   step "migrations"           npx tsx scripts/migrate.ts --reset
   step "migrations vs dirty"  npm run test:migrations
   step "database assertions"  npm run db:test
+  step "term writes"          npm run test:term-writes
   step "guardrails import"    npm run db:import-guardrails
   step "import is idempotent" npm run db:import-guardrails
 else

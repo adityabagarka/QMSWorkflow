@@ -102,6 +102,11 @@ jobs:
       - name: Prove the role/span model (ARCHITECTURE.md §15)
         run: npm run db:test
 
+      # The schema's constraints were never the problem when manual term entry
+      # silently lost data — the sequence the app performs was. This runs that.
+      - name: The terms grid write path
+        run: npm run test:term-writes
+
       - name: Import the guardrails workbook (ARCHITECTURE.md §4.3)
         run: npm run db:import-guardrails
 

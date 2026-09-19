@@ -2,7 +2,7 @@
   "name": "qms-workflow",
   "version": "0.0.0",
   "private": true,
-  "description": "Rollover Quote Management System — M0 foundation",
+  "description": "Rollover Quote Management System \u2014 M0 foundation",
   "engines": {
     "node": ">=20"
   },
@@ -31,7 +31,8 @@
     "test:cover-start": "tsx scripts/__tests__/cover-start.ts",
     "test:fonts": "cd docs/design-review && node font-roles.mjs",
     "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts",
-    "test:extraction": "tsx scripts/__tests__/policy-extraction.ts"
+    "test:extraction": "tsx scripts/__tests__/policy-extraction.ts",
+    "test:term-writes": "tsx scripts/__tests__/term-writes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

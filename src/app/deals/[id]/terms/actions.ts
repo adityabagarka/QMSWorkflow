@@ -22,25 +22,36 @@ export type ExtractionSummary =
   | { ok: false; message: string }
   | null;
 
-/** The case's expiring-policy row, created on first use. */
+/**
+ * The case's expiring-policy row, created on first use.
+ *
+ * An upsert rather than read-then-insert. Every cell on the terms grid saves
+ * independently, so on a case with no policy row yet two quick edits both found
+ * nothing and both inserted — `policies.case_id` is unique, so the second lost
+ * its constraint race and the edit was dropped with it. Which is the first
+ * thing that happens on every new deal.
+ */
 async function policyIdFor(dealId: string): Promise<string | null> {
   const supabase = supabaseServer();
 
-  const { data: existing } = await supabase
+  const { data, error } = await supabase
     .from('policies')
-    .select('id')
-    .eq('case_id', dealId)
-    .maybeSingle<{ id: string }>();
-
-  if (existing) return existing.id;
-
-  const { data } = await supabase
-    .from('policies')
-    .insert({ case_id: dealId })
+    .upsert({ case_id: dealId }, { onConflict: 'case_id' })
     .select('id')
     .single<{ id: string }>();
 
-  return data?.id ?? null;
+  if (error || !data) {
+    // Lost the race anyway, or cannot write: read whatever is there now.
+    const { data: existing } = await supabase
+      .from('policies')
+      .select('id')
+      .eq('case_id', dealId)
+      .maybeSingle<{ id: string }>();
+
+    return existing?.id ?? null;
+  }
+
+  return data.id;
 }
 
 /**
@@ -310,7 +321,15 @@ export async function saveTerm(
     benefit_key: benefitKey,
     value,
     source: proposed && unchanged ? ('extracted' as const) : ('manual' as const),
-    review_status: proposed && unchanged ? ('confirmed' as const) : ('corrected' as const),
+    // 'corrected' only where there was something to correct. A value typed
+    // where nothing was proposed is confirmed by the act of typing it, and
+    // counting those as corrections would make the reader look worse than it is.
+    review_status:
+      proposed && unchanged
+        ? ('confirmed' as const)
+        : proposed
+          ? ('corrected' as const)
+          : ('confirmed' as const),
     reviewed_by: session.userId,
     reviewed_at: now,
     evidence_quote: proposed && unchanged ? existing?.evidence_quote : null,

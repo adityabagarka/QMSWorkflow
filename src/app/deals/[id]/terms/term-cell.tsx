@@ -1,59 +1,53 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { saveTerm } from './actions';
+import { useEffect, useState } from 'react';
+import type { SaveState, TermState } from './use-term-saves';
+
+const STATE_LABEL: Partial<Record<SaveState, string>> = {
+  dirty: 'unsaved',
+  saving: 'saving…',
+  saved: 'saved',
+};
 
 /**
  * One expiring term, and the decision about it.
  *
- * The cell is the editor. A separate form, or a modal per benefit, would mean
- * fifty-eight round trips through a dialog for a policy nobody could read
- * automatically — which is the ordinary case, not the exception.
+ * A view onto state the grid owns (see `useTermSaves`) rather than the owner of
+ * it. That is the whole point: this component unmounts whenever its section is
+ * collapsed, and when it owned the pending edit, collapsing a section threw the
+ * edit away without a word.
  *
- * A proposed value shows `confirm` beside it. Confirming is one click and is
- * not the same as retyping the same words: it records agreement with what the
- * policy was read to say, and the clause behind it survives. Changing the value
- * is a correction, and the clause does not survive, because it was evidence for
- * a different reading.
+ * The cell is still the editor — a modal per benefit would mean fifty-eight
+ * dialogs for a policy nobody could read automatically, which is the ordinary
+ * case rather than the exception.
  */
 export function TermCell({
-  dealId,
   benefitKey,
-  value,
-  reviewed,
-  evidence,
-  evidencePage,
+  term,
+  onEdit,
+  onConfirm,
 }: {
-  dealId: string;
   benefitKey: string;
-  value: string | null;
-  reviewed: boolean;
-  evidence: string | null;
-  evidencePage: number | null;
+  term: TermState;
+  onEdit: (value: string | null) => void;
+  onConfirm: () => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value ?? '');
-  const [shown, setShown] = useState(value);
-  const [keptEvidence, setKeptEvidence] = useState(evidence);
-  const [settled, setSettled] = useState(reviewed);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, startSaving] = useTransition();
+  const [draft, setDraft] = useState(term.value ?? '');
 
-  function commit(next: string | null, agreeing: boolean) {
-    setError(null);
-    startSaving(async () => {
-      const result = await saveTerm(dealId, benefitKey, next);
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      setShown(result.value);
-      setSettled(true);
-      setEditing(false);
-      // A corrected value is no longer supported by the clause the model read.
-      if (!agreeing) setKeptEvidence(null);
-    });
+  // Re-opening a cell starts from whatever is current, including a value that
+  // arrived from a save that finished while this cell was unmounted.
+  useEffect(() => {
+    if (!editing) setDraft(term.value ?? '');
+  }, [term.value, editing]);
+
+  function commit() {
+    setEditing(false);
+    const next = draft.trim() || null;
+    if (next !== (term.value ?? null)) onEdit(next);
   }
+
+  const badge = STATE_LABEL[term.state];
 
   if (editing) {
     return (
@@ -62,19 +56,18 @@ export function TermCell({
           className="terms__input"
           autoFocus
           value={draft}
-          disabled={saving}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commit(draft, false);
+            if (e.key === 'Enter') commit();
             if (e.key === 'Escape') {
-              setDraft(shown ?? '');
+              setDraft(term.value ?? '');
               setEditing(false);
             }
           }}
-          onBlur={() => commit(draft, false)}
+          onBlur={commit}
           aria-label={`Expiring value for ${benefitKey}`}
         />
-        {keptEvidence ? (
+        {term.evidence ? (
           <span className="terms__evidence terms__evidence--stale">
             Changing this drops the clause it was read from.
           </span>
@@ -83,39 +76,49 @@ export function TermCell({
     );
   }
 
+  const className = [
+    'terms__cell',
+    term.reviewed ? '' : 'terms__cell--proposed',
+    term.state === 'error' ? 'terms__cell--failed' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={settled ? 'terms__cell' : 'terms__cell terms__cell--proposed'}>
+    <div className={className}>
       <button
         className="terms__edit"
         type="button"
-        disabled={saving}
         onClick={() => {
-          setDraft(shown ?? '');
+          setDraft(term.value ?? '');
           setEditing(true);
         }}
       >
-        {shown ?? <span className="terms__unset">not stated</span>}
+        {term.value ?? <span className="terms__unset">not stated</span>}
       </button>
 
-      {keptEvidence ? (
+      {term.evidence ? (
         <>
-          <span className="terms__evidence">“{keptEvidence}”</span>
-          {evidencePage ? <span className="terms__page">page {evidencePage}</span> : null}
+          <span className="terms__evidence">“{term.evidence}”</span>
+          {term.evidencePage ? <span className="terms__page">page {term.evidencePage}</span> : null}
         </>
       ) : null}
 
-      {!settled ? (
-        <button
-          className="terms__confirm"
-          type="button"
-          disabled={saving}
-          onClick={() => commit(shown, true)}
-        >
-          {saving ? 'saving…' : 'confirm'}
+      {!term.reviewed && term.value ? (
+        <button className="terms__confirm" type="button" onClick={onConfirm}>
+          confirm
         </button>
       ) : null}
 
-      {error ? <span className="terms__error">{error}</span> : null}
+      {badge ? <span className={`terms__state terms__state--${term.state}`}>{badge}</span> : null}
+      {term.state === 'error' ? (
+        <span className="terms__error">
+          {term.message ?? 'Not saved.'}{' '}
+          <button className="linkish" type="button" onClick={() => onEdit(term.value)}>
+            retry
+          </button>
+        </span>
+      ) : null}
     </div>
   );
 }

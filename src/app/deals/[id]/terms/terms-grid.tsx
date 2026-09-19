@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { TermCell } from './term-cell';
+import { useTermSaves, type TermState } from './use-term-saves';
 
 export type ChangeKind = 'enhancement' | 'restriction' | 'changed';
 
@@ -58,6 +59,27 @@ export function TermsGrid({
   options: OptionColumn[];
   onRename?: (optionId: string) => void;
 }) {
+  /*
+   * Every pending edit lives here, above the cells. A cell unmounts whenever
+   * its section is collapsed, and while the cell owned its own pending save,
+   * collapsing a section discarded the typing in it.
+   */
+  const { terms, edit, confirm, pending, failed } = useTermSaves(
+    dealId,
+    new Map<string, TermState>(
+      rows.map((r) => [
+        r.benefitKey,
+        {
+          value: r.expiring,
+          state: 'clean',
+          evidence: r.evidence,
+          evidencePage: r.evidencePage,
+          reviewed: r.reviewed,
+        },
+      ]),
+    ),
+  );
+
   const sections = [...new Set(rows.map((r) => r.section))];
   const [closed, setClosed] = useState<Set<string>>(() => new Set(sections.slice(1)));
 
@@ -76,6 +98,16 @@ export function TermsGrid({
 
   return (
     <>
+      {/* Saving is continuous, so the only thing worth stating is whether
+          anything has not reached the database yet. */}
+      {pending > 0 || failed > 0 ? (
+        <p className={failed > 0 ? 'terms__pending terms__pending--bad' : 'terms__pending'}>
+          {failed > 0
+            ? `${failed} ${failed === 1 ? 'term' : 'terms'} did not save`
+            : `Saving ${pending}…`}
+        </p>
+      ) : null}
+
       {options.length === 0 ? null : (
         <p className="terms__key">
           <span>
@@ -116,7 +148,9 @@ export function TermsGrid({
             const changed = sectionRows.filter((r) =>
               options.some((o) => r.cells[o.id]?.changed),
             ).length;
-            const unconfirmed = sectionRows.filter((r) => !r.reviewed).length;
+            const unconfirmed = sectionRows.filter(
+              (r) => !(terms.get(r.benefitKey)?.reviewed ?? r.reviewed),
+            ).length;
             const isClosed = closed.has(section);
 
             return (
@@ -142,12 +176,18 @@ export function TermsGrid({
                       <div key={row.benefitKey} style={{ display: 'contents' }}>
                         <div className="terms__cell terms__cell--label">{row.label}</div>
                         <TermCell
-                          dealId={dealId}
                           benefitKey={row.benefitKey}
-                          value={row.expiring}
-                          reviewed={row.reviewed}
-                          evidence={row.evidence}
-                          evidencePage={row.evidencePage}
+                          term={
+                            terms.get(row.benefitKey) ?? {
+                              value: row.expiring,
+                              state: 'clean',
+                              evidence: row.evidence,
+                              evidencePage: row.evidencePage,
+                              reviewed: row.reviewed,
+                            }
+                          }
+                          onEdit={(v) => edit(row.benefitKey, v)}
+                          onConfirm={() => confirm(row.benefitKey)}
                         />
                         {options.map((o) => {
                           const cell = row.cells[o.id];
