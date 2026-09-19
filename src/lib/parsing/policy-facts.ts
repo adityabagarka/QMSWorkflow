@@ -1,0 +1,315 @@
+import { parseAmount, parseDate } from '@/lib/parsing/values';
+import { bespokePages, type PdfPage, type PdfText } from '@/lib/parsing/pdf-text';
+
+/**
+ * The facts on a policy schedule that need no model to read.
+ *
+ * Every one of these is a labelled value on the first page or two: the insurer,
+ * the TPA, the broker, the period, the sum insured, the premium, the GSTIN.
+ * They are patterned enough for rules, and rules are free, instant and — unlike
+ * a model — incapable of inventing a plausible answer.
+ *
+ * The benefit table is deliberately NOT here. Measured across fifteen real
+ * policies, no benefit could be found by label in every one of them: every
+ * insurer writes "Day Care" where the catalogue says "Daycare Treatments", and
+ * Bajaj states room rent in a prose paragraph beneath the table. That is the
+ * work the model does (ADR 0012); this is the work it should never have to.
+ */
+
+export type Fact<T> = {
+  value: T;
+  /** The line it was read from, for the same reason terms carry their clause. */
+  evidence: string;
+  page: number;
+};
+
+export type PolicyFacts = {
+  insurerName: Fact<string> | null;
+  tpaName: Fact<string> | null;
+  brokerName: Fact<string> | null;
+  policyNumber: Fact<string> | null;
+  policyStart: Fact<string> | null;
+  policyEnd: Fact<string> | null;
+  sumInsured: Fact<number> | null;
+  premium: Fact<number> | null;
+  gstin: Fact<string> | null;
+  policyholderName: Fact<string> | null;
+  lives: Fact<number> | null;
+};
+
+export type FactsOutcome =
+  | { ok: true; facts: PolicyFacts; pagesRead: number; pagesSkipped: number }
+  | { ok: false; reason: 'unreadable'; message: string };
+
+/** How an insurer names itself on its own schedule. */
+const INSURER_MARKERS: [RegExp, string][] = [
+  [/tata\s*aig/i, 'Tata AIG'],
+  [/icici\s*lombard/i, 'ICICI Lombard'],
+  [/bajaj\s*(allianz|general)/i, 'Bajaj'],
+  [/hdfc\s*ergo/i, 'HDFC ERGO'],
+  [/care\s+health/i, 'Care Health'],
+  [/niva\s*bupa/i, 'Niva Bupa'],
+  [/star\s+health/i, 'Star Health'],
+  [/new\s+india\s+assurance/i, 'New India Assurance'],
+  [/oriental\s+insurance/i, 'Oriental Insurance'],
+  [/united\s+india/i, 'United India'],
+  [/national\s+insurance/i, 'National Insurance'],
+  [/aditya\s*birla/i, 'Aditya Birla Health'],
+  [/manipal\s*cigna/i, 'ManipalCigna'],
+  [/go\s*digit/i, 'Go Digit'],
+  [/iffco\s*tokio/i, 'IFFCO Tokio'],
+  [/sbi\s+general/i, 'SBI General'],
+  [/reliance\s+general|indusind\s+general/i, 'IndusInd General'],
+  [/universal\s+sompo/i, 'Universal Sompo'],
+  [/cholamandalam|chola\s*ms/i, 'Chola MS'],
+  [/royal\s+sundaram/i, 'Royal Sundaram'],
+  [/future\s+generali|generali\s+central/i, 'Generali Central'],
+  [/liberty\s+general/i, 'Liberty'],
+  [/zuno|edelweiss\s+general/i, 'Zuno'],
+];
+
+/**
+ * Labels as the three insurers actually write them.
+ *
+ * Several labels per field, because none of them agree: TATA AIG says "Claims
+ * Administrator" where ICICI says "Third Party Administrator", and the broker
+ * is the "Intermediary Name" on one and the "Broker" on another.
+ */
+const LABELS: Record<string, RegExp[]> = {
+  tpaName: [
+    /claims?\s+administrator/i,
+    /third\s+party\s+administrator/i,
+    /\btpa\s+name\b/i,
+    /^\s*tpa\b/i,
+  ],
+  brokerName: [/intermediary\s+name/i, /^\s*broker\b/i, /broker\s+name/i, /agent\s*\/\s*broker/i],
+  policyNumber: [/policy\s*(no|number)\b/i, /policy\s*num[-\s]*ber/i],
+  policyholderName: [
+    /policy\s*holder'?s?\s+name/i,
+    /insured\s+name/i,
+    /name\s+of\s+(the\s+)?insured/i,
+    /proposer\s+name/i,
+  ],
+  gstin: [/\bgstin\b/i, /\bgst\s*(no|number|in)\b/i],
+  sumInsured: [/sum\s+insured/i, /total\s+sum\s+insured/i],
+  premium: [/net\s+premium/i, /total\s+premium/i, /gross\s+premium/i, /premium\s+amount/i],
+  lives: [/total\s+no\.?\s+of\s+insured\s+person/i, /total\s+lives/i, /number\s+of\s+lives/i],
+};
+
+const GSTIN = /\b\d{2}[A-Z]{5}\d{4}[A-Z][0-9A-Z]{3}\b/;
+
+/**
+ * A date as Indian policies write one. All four forms are in the sample:
+ * 08/04/2026 (TATA AIG), 16-APR-26 (Bajaj), 1 Nov 2026, and Mar 28, 2026
+ * (ICICI Lombard, month first with a comma).
+ */
+const DATE =
+  /\b(\d{1,2}[/-][A-Za-z]{3}[/-]\d{2,4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]{3,9}\s+\d{4}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4})\b/;
+
+/**
+ * Everything that could be the value for a label on this line, in order of
+ * likelihood.
+ *
+ * Not one candidate: a schedule is a table flattened into lines, and the value
+ * sits in the next column, or two columns over, or on the line below. The first
+ * version took only the text immediately after the label and stopped, which
+ * lost the premium on every TATA AIG policy — where the label row reads "Net
+ * Premium (₹) | Add: Applicable Taxes (₹) | Total Gross Premium (₹)" and the
+ * figures are on the line beneath — and the sum insured on every ICICI one,
+ * where the value is simply in the next column.
+ */
+function candidatesAfter(lines: string[], index: number, label: RegExp): string[] {
+  const line = lines[index] ?? '';
+  const match = label.exec(line);
+  if (!match) return [];
+
+  const out: string[] = [];
+
+  // The separator between a label and its value is punctuation, and ICICI
+  // Lombard puts it on a line of its own: label, then ":", then the value.
+  const clean = (segment: string) => segment.replace(/^[\s:\t.\-–—]+/, '').trim();
+
+  const rest = line.slice(match.index + match[0].length);
+  for (const segment of rest.split('\t')) {
+    const trimmed = clean(segment);
+    if (trimmed.length > 0) out.push(trimmed);
+  }
+
+  for (let i = index + 1; i < Math.min(index + 3, lines.length); i += 1) {
+    for (const segment of (lines[i] ?? '').split('\t')) {
+      const trimmed = clean(segment);
+      if (trimmed.length > 0) out.push(trimmed);
+    }
+  }
+
+  return out;
+}
+
+function scan<T>(
+  pages: PdfPage[],
+  labels: RegExp[],
+  extract: (raw: string, line: string) => T | null,
+): Fact<T> | null {
+  for (const { page, lines } of pages) {
+    for (let i = 0; i < lines.length; i += 1) {
+      for (const label of labels) {
+        for (const raw of candidatesAfter(lines, i, label)) {
+          const value = extract(raw, lines[i] ?? '');
+          if (value !== null && value !== undefined) {
+            return { value, evidence: (lines[i] ?? '').replace(/\t/g, ' ').trim(), page };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+const asText = (raw: string): string | null => {
+  const cleaned = raw.replace(/\t/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned.length >= 2 && cleaned.length <= 120 ? cleaned : null;
+};
+
+const asAmount = (raw: string): number | null => {
+  const value = parseAmount(raw);
+  // Policy figures are lakhs and crores; anything tiny is a row number or a
+  // clause reference that happened to sit beside the label.
+  return value !== null && value >= 1000 ? value : null;
+};
+
+const asDate = (raw: string): string | null => {
+  const match = DATE.exec(raw);
+  if (!match) return null;
+  const parsed = parseDate(match[1]);
+  return parsed?.iso ?? null;
+};
+
+/**
+ * Reads what the schedule states plainly.
+ *
+ * Only the bespoke pages are scanned. The filed wording repeats every one of
+ * these labels in its definitions — "Sum Insured means the amount stated in the
+ * Schedule" — and reading those would replace a real figure with a sentence.
+ */
+export function readPolicyFacts(text: PdfText): FactsOutcome {
+  if (!text.usable) {
+    return {
+      ok: false,
+      reason: 'unreadable',
+      message:
+        'That PDF has no readable text layer — it decodes to symbols rather than words. Enter the details by hand, or upload a copy saved from the insurer portal rather than a printed and rescanned one.',
+    };
+  }
+
+  /*
+   * Every bespoke page, not the first few. ICICI Lombard opens with a
+   * Customer Information Sheet and a coverage summary, and the actual schedule
+   * — period, lives, sum insured, premium — is on page seven or later. A
+   * six-page window read the cover sheet and stopped.
+   *
+   * Safe to widen because the filed wording has already been trimmed off: it is
+   * the wording that repeats these labels in its definitions, and first match
+   * wins, so an earlier page is still preferred.
+   */
+  const pages = bespokePages(text);
+  const head = pages;
+
+  // The insurer names itself in its own letterhead and footer rather than
+  // against a label, so it is matched on the text instead of scanned for.
+  let insurerName: Fact<string> | null = null;
+  outer: for (const { page, lines } of head) {
+    for (const line of lines) {
+      for (const [pattern, name] of INSURER_MARKERS) {
+        if (pattern.test(line)) {
+          insurerName = { value: name, evidence: line.replace(/\t/g, ' ').trim(), page };
+          break outer;
+        }
+      }
+    }
+  }
+
+  const dates = scanPeriod(head);
+
+  /*
+   * A GSTIN is a checksummed 15-character pattern that occurs nowhere else, so
+   * where no label carries one it is still safe to take from the text. Several
+   * schedules print it in a footer block with no label at all.
+   */
+  let gstin = scan(head, LABELS.gstin!, (raw) => GSTIN.exec(raw.toUpperCase())?.[0] ?? null);
+  if (!gstin) {
+    outerGstin: for (const { page, lines } of head) {
+      for (const line of lines) {
+        const found = GSTIN.exec(line.toUpperCase());
+        if (found) {
+          gstin = { value: found[0], evidence: line.replace(/\t/g, ' ').trim(), page };
+          break outerGstin;
+        }
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    pagesRead: pages.length,
+    pagesSkipped: text.pages.length - pages.length,
+    facts: {
+      insurerName,
+      tpaName: scan(head, LABELS.tpaName!, asText),
+      brokerName: scan(head, LABELS.brokerName!, asText),
+      policyNumber: scan(head, LABELS.policyNumber!, (raw) =>
+        /[A-Za-z0-9]{6,}/.test(raw.replace(/\s/g, '')) ? asText(raw) : null,
+      ),
+      policyholderName: scan(head, LABELS.policyholderName!, asText),
+      gstin,
+      sumInsured: scan(head, LABELS.sumInsured!, asAmount),
+      premium: scan(head, LABELS.premium!, asAmount),
+      lives: scan(head, LABELS.lives!, (raw) => {
+        const n = parseAmount(raw);
+        return n !== null && n >= 1 && n <= 1000000 ? Math.round(n) : null;
+      }),
+      policyStart: dates.start,
+      policyEnd: dates.end,
+    },
+  };
+}
+
+/**
+ * The cover period.
+ *
+ * Kept apart from the labelled scan because it is written as a pair — "From
+ * 08/04/2026 To 07/04/2027", or as "Risk Inception Date" and "Risk Expiry
+ * Date" rows — and reading either date alone gives a period nobody can check.
+ */
+function scanPeriod(pages: PdfPage[]): {
+  start: Fact<string> | null;
+  end: Fact<string> | null;
+} {
+  for (const { page, lines } of pages) {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = (lines[i] ?? '').replace(/\t/g, ' ');
+      if (!/policy\s+period|period\s+of\s+insurance|risk\s+incep/i.test(line)) continue;
+
+      /*
+       * The pair can sit either side of the label. TATA AIG prints "From
+       * 08/04/2026" above the words "Policy Period" and "To 07/04/2027" below
+       * them, so a window that only looks forward finds one date and reports a
+       * period nobody can check.
+       */
+      const window = [lines[i - 1] ?? '', line, lines[i + 1] ?? '', lines[i + 2] ?? '']
+        .join(' ')
+        .replace(/\t/g, ' ');
+      const found = [...window.matchAll(new RegExp(DATE, 'g'))]
+        .map((m) => parseDate(m[1])?.iso)
+        .filter((d): d is string => Boolean(d));
+
+      if (found.length >= 2) {
+        const [start, end] = [...found].sort();
+        return {
+          start: { value: start!, evidence: line.trim(), page },
+          end: { value: end!, evidence: line.trim(), page },
+        };
+      }
+    }
+  }
+  return { start: null, end: null };
+}

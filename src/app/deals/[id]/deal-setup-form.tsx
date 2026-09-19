@@ -9,6 +9,7 @@ import type { Party } from '@/lib/cases/parties';
 import { constitutionFromLegalName } from '@/lib/cases/constitution';
 import { GST_INPUT_HINT } from '@/lib/format';
 import { saveDealSetup, type SaveResult } from './actions';
+import { PolicyFactsPanel } from './policy-facts-panel';
 
 /** Shared with the page, so the step footer can submit this form. */
 export const DEAL_SETUP_FORM_ID = 'deal-setup';
@@ -100,6 +101,28 @@ export function DealSetupForm({
   const [entityType, setEntityType] = useState(initial.entity_type ?? '');
   const [lookup, setLookup] = useState<'idle' | 'found' | 'missing'>('idle');
   const [broker, setBroker] = useState(initial.broker_name ?? '');
+  const [insurer, setInsurer] = useState(initial.insurer_name ?? '');
+  const [tpa, setTpa] = useState(initial.tpa_name ?? '');
+  const [expiry, setExpiry] = useState(initial.policy_expiry_date ?? '');
+  const [premium, setPremium] = useState(
+    initial.expiring_premium === null ? '' : String(initial.expiring_premium),
+  );
+
+  /*
+   * A value read off the policy copy, put into the field it belongs to. Never
+   * applied on its own: the schedule is one source among several and the
+   * register beats it, so a person decides (ADR 0011 rule 4).
+   */
+  function applyFact(field: string, value: string) {
+    if (field === 'legal_name') onLegalName(value);
+    if (field === 'gstin') setGstin(value.toUpperCase());
+    if (field === 'insurer_name') setInsurer(value);
+    if (field === 'broker_name') setBroker(value);
+    if (field === 'tpa_name') setTpa(value);
+    if (field === 'policy_expiry_date') setExpiry(value);
+    if (field === 'expiring_premium') setPremium(value);
+    setShowCompany(true);
+  }
 
   /*
    * The company details stay hidden until there is something to show: a GSTIN
@@ -143,6 +166,8 @@ export function DealSetupForm({
 
   return (
     <form action={submit} id={DEAL_SETUP_FORM_ID}>
+      <PolicyFactsPanel dealId={dealId} onApply={applyFact} />
+
       <Section
         title="Company"
         defaultOpen={!known}
@@ -264,7 +289,8 @@ export function DealSetupForm({
             <Select
               name="insurer_name"
               options={insurers.map((i) => i.short_name)}
-              defaultValue={initial.insurer_name ?? ''}
+              value={insurer}
+              onChange={(e) => setInsurer(e.target.value)}
             />
           </Field>
           {/* Open: several hundred brokers exist and we meet perhaps fifty, so
@@ -296,14 +322,16 @@ export function DealSetupForm({
             <Select
               name="tpa_name"
               options={tpas.map((t) => t.short_name)}
-              defaultValue={initial.tpa_name ?? ''}
+              value={tpa}
+              onChange={(e) => setTpa(e.target.value)}
             />
           </Field>
           <Field label="Expiring premium" hint={GST_INPUT_HINT}>
             <Input
               type="number"
               name="expiring_premium"
-              defaultValue={initial.expiring_premium ?? ''}
+              value={premium}
+              onChange={(e) => setPremium(e.target.value)}
               min="0"
               step="1"
             />
@@ -315,7 +343,8 @@ export function DealSetupForm({
             <Input
               type="date"
               name="policy_expiry_date"
-              defaultValue={initial.policy_expiry_date ?? ''}
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
             />
           </Field>
         </FieldRow>

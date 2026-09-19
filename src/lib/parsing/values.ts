@@ -151,7 +151,9 @@ export function parseAmount(value: unknown): number | null {
    * abbreviation separately keeps the dot with the word it belongs to.
    */
   text = text
-    .replace(/[₹$]/g, '')
+    // The backtick is ICICI Lombard's rupee glyph: their schedule font maps ₹
+    // to ` and the text layer hands it back literally.
+    .replace(/[₹$`]/g, '')
     .replace(/\b(?:inr|rs)\b\.?/gi, '')
     .replace(/,/g, '')
     .replace(/\s/g, '')

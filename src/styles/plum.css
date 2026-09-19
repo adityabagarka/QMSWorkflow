@@ -1378,6 +1378,74 @@ input[type='text'] {
   white-space: nowrap;
 }
 
+/* ── What the policy copy says, offered rather than applied ──────────────── */
+
+.facts {
+  border: 1px solid var(--line-lavender);
+  background: var(--cream-deep);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.facts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.facts__what {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-1);
+}
+
+.facts__bad {
+  margin: 12px 0 0;
+  max-width: 68ch;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.facts__list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts__list li {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 70px 40px;
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid var(--line-lavender);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+
+.facts__label {
+  color: var(--fg-muted);
+}
+
+.facts__value {
+  color: var(--fg-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.facts__where {
+  color: var(--fg-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ── Entering and confirming an expiring term ────────────────────────────── */
 
 /*

@@ -39,6 +39,7 @@ step parsers              npm run test:parsing
 step "deviations + burn"  npm run test:members
 step "rfq workbook"       npm run test:rfq
 step "policy reader"      npm run test:extraction
+step "policy facts"       npm run test:policy-facts
 step typefaces            npm run test:fonts
 
 if [ -n "${DATABASE_URL:-}" ]; then
