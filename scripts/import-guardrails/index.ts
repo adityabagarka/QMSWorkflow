@@ -531,6 +531,28 @@ async function main() {
         sheets.rate_factors!,
       );
 
+      /*
+       * The input vocabularies (migration 0039) are keyed by benefit_key but
+       * not constrained to it — they have to be seedable before the catalogue
+       * is imported, which is this script. So the rule is checked here, where
+       * both halves finally exist.
+       *
+       * A key naming no benefit means the workbook renamed one, and its
+       * vocabulary has silently stopped being offered.
+       */
+      const { rows: orphans } = await client.query<{ benefit_key: string }>(
+        'select benefit_key from app.orphan_input_specs()',
+      );
+
+      if (orphans.length > 0) {
+        throw new Error(
+          `These input vocabularies name benefits the catalogue does not hold: ` +
+            `${orphans.map((o) => o.benefit_key).join(', ')}. ` +
+            `Either the workbook renamed a benefit, or the key is a typo — ` +
+            `until it is fixed, those benefits fall back to the default choices.`,
+        );
+      }
+
       await client.query('commit');
     } catch (error) {
       await client.query('rollback');

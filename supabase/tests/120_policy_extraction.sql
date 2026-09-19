@@ -7,7 +7,7 @@
 -- quotes against them. So the rules live in the table and are asserted here.
 
 begin;
-select plan(20);
+select plan(26);
 
 create temporary table ex (who text primary key, id uuid default gen_random_uuid());
 insert into ex (who) values ('rm'), ('cust');
@@ -258,6 +258,66 @@ select is(
     where extraction_id = 'bbbb3333-0000-0000-0000-00000000000a'),
   1,
   'the correction is retained for measuring the reader against its reviews'
+);
+
+-- --------------------------------------------------------------------------
+-- What shape of answer a benefit takes, and what to offer for it.
+--
+-- The vocabulary is seeded and then learned: what real deals record for a
+-- benefit joins its list, most used first. The seeded order has to survive
+-- that, because the whole value of a suggestion list is that the common answer
+-- is the nearest one — 0039 ranked them equally and they came back
+-- alphabetical, putting "Not applicable" above "Covered".
+-- --------------------------------------------------------------------------
+insert into benefit_catalogue (benefit_key, display_order, section, benefit_label)
+values ('extract_benefit_choice', 9104, 'The basics', 'Extract Benefit Choice')
+on conflict (benefit_key) do nothing;
+
+insert into benefit_input_spec (benefit_key, input_kind, suggestions)
+values ('extract_benefit_choice', 'choice', array['Covered', 'Not covered', 'Not applicable'])
+on conflict (benefit_key) do nothing;
+
+select is(
+  (app.benefit_suggestions('extract_benefit_choice'))[1],
+  'Covered',
+  'the seeded order is kept, so the likeliest value is the nearest one'
+);
+
+insert into policy_terms
+  (case_id, policy_id, benefit_key, value, source, review_status, reviewed_by, reviewed_at)
+values ('bbbb3333-0000-0000-0000-000000000001', 'bbbb3333-0000-0000-0000-000000000002',
+        'extract_benefit_choice', 'Covered up to Rs. 25,000 per family', 'manual',
+        'confirmed', exid('rm'), now());
+
+select ok(
+  'Covered up to Rs. 25,000 per family' = any(app.benefit_suggestions('extract_benefit_choice')),
+  'a value a real deal recorded joins the vocabulary'
+);
+
+select is(
+  (app.benefit_suggestions('extract_benefit_choice'))[1],
+  'Covered',
+  'but it never displaces the seeded values — those come first'
+);
+
+select ok(
+  (select count(*) from app.all_benefit_suggestions() where benefit_key = 'extract_benefit_choice') = 1,
+  'every benefit appears exactly once when the whole grid asks at once'
+);
+
+-- A benefit with no spec is a plain choice rather than an empty dropdown: the
+-- catalogue grows by import and the vocabulary by migration, so the two are
+-- never guaranteed to be in step.
+select is(
+  app.benefit_input_kind('extract_benefit_typed'),
+  'choice',
+  'a benefit nobody wrote a vocabulary for still has one'
+);
+
+select is(
+  (app.benefit_suggestions('extract_benefit_typed'))[1],
+  'Covered',
+  'and it is the default vocabulary, in the right order'
 );
 
 select * from finish();

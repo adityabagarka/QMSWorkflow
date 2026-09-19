@@ -30,10 +30,16 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
   const [catalogue, terms, options, overrides, docs] = await Promise.all([
     supabase
       .from('benefit_catalogue')
-      .select('benefit_key, section, benefit_label, display_order')
+      .select('benefit_key, section, benefit_label, display_order, input_kind')
       .order('display_order')
       .returns<
-        { benefit_key: string; section: string; benefit_label: string; display_order: number }[]
+        {
+          benefit_key: string;
+          section: string;
+          benefit_label: string;
+          display_order: number;
+          input_kind: 'choice' | 'amount' | 'text';
+        }[]
       >(),
     policyId
       ? supabase
@@ -96,6 +102,19 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
 
   const optionIds = (options.data ?? []).map((o) => o.id);
 
+  /*
+   * Every benefit's vocabulary in one call: the seeded values plus what real
+   * deals have recorded, most used first (migration 0041). Per-benefit calls
+   * would be fifty-eight round trips to render one screen.
+   */
+  const { data: suggestionRows } = await supabase.rpc('all_benefit_suggestions');
+
+  const suggestionsByKey = new Map(
+    ((suggestionRows ?? []) as { benefit_key: string; suggestions: string[] | null }[]).map(
+      (r) => [r.benefit_key, r.suggestions ?? []] as const,
+    ),
+  );
+
   const rows: TermRow[] = (catalogue.data ?? []).map((b) => {
     const term = termByKey.get(b.benefit_key);
     const expiring = term?.value ?? null;
@@ -121,6 +140,8 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
       section: b.section,
       label: b.benefit_label,
       expiring,
+      inputKind: b.input_kind,
+      suggestions: suggestionsByKey.get(b.benefit_key) ?? [],
       reviewed: Boolean(term && term.review_status !== 'proposed'),
       evidence: term?.evidence_quote ?? null,
       evidencePage: term?.evidence_page ?? null,

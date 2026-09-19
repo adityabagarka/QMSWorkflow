@@ -17,6 +17,9 @@ export type TermRow = {
   benefitKey: string;
   section: string;
   label: string;
+  inputKind: 'choice' | 'amount' | 'text';
+  /** Seeded vocabulary plus what real deals have used (migration 0040). */
+  suggestions: string[];
   expiring: string | null;
   reviewed: boolean;
   /** The clause this value was read from, when a model read it. */
@@ -186,6 +189,8 @@ export function TermsGrid({
                               reviewed: row.reviewed,
                             }
                           }
+                          suggestions={row.suggestions}
+                          inputKind={row.inputKind}
                           onEdit={(v) => edit(row.benefitKey, v)}
                           onConfirm={() => confirm(row.benefitKey)}
                         />

@@ -24,16 +24,22 @@ const STATE_LABEL: Partial<Record<SaveState, string>> = {
 export function TermCell({
   benefitKey,
   term,
+  suggestions,
+  inputKind,
   onEdit,
   onConfirm,
 }: {
   benefitKey: string;
   term: TermState;
+  /** The seeded vocabulary plus whatever real deals have used. */
+  suggestions: string[];
+  inputKind: 'choice' | 'amount' | 'text';
   onEdit: (value: string | null) => void;
   onConfirm: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(term.value ?? '');
+  const [highlighted, setHighlighted] = useState(-1);
 
   // Re-opening a cell starts from whatever is current, including a value that
   // arrived from a save that finished while this cell was unmounted.
@@ -50,23 +56,84 @@ export function TermCell({
   const badge = STATE_LABEL[term.state];
 
   if (editing) {
+    /*
+     * Suggestions filter as you type, and anything not in the list is still a
+     * valid answer — a bespoke policy is a real thing, it just should not be
+     * the default path when the answer is one of four words.
+     */
+    const needle = draft.trim().toLowerCase();
+    const offered = suggestions
+      .filter((s) => needle === '' || s.toLowerCase().includes(needle))
+      .filter((s) => s.toLowerCase() !== needle)
+      .slice(0, 8);
+
+    function choose(value: string) {
+      setDraft(value);
+      setEditing(false);
+      setHighlighted(-1);
+      if (value !== (term.value ?? null)) onEdit(value);
+    }
+
     return (
       <div className="terms__cell terms__cell--editing">
-        <input
-          className="terms__input"
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commit();
-            if (e.key === 'Escape') {
-              setDraft(term.value ?? '');
-              setEditing(false);
-            }
-          }}
-          onBlur={commit}
-          aria-label={`Expiring value for ${benefitKey}`}
-        />
+        <span className="typeahead">
+          <input
+            className="terms__input"
+            autoFocus
+            value={draft}
+            inputMode={inputKind === 'amount' ? 'text' : undefined}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setHighlighted(-1);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setHighlighted((i) => Math.min(i + 1, offered.length - 1));
+                return;
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setHighlighted((i) => Math.max(i - 1, -1));
+                return;
+              }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const picked = offered[highlighted];
+                if (picked) choose(picked);
+                else commit();
+                return;
+              }
+              if (e.key === 'Escape') {
+                setDraft(term.value ?? '');
+                setEditing(false);
+                setHighlighted(-1);
+              }
+            }}
+            onBlur={commit}
+            aria-label={`Expiring value for ${benefitKey}`}
+          />
+
+          {offered.length > 0 ? (
+            <ul className="typeahead__list">
+              {offered.map((s, i) => (
+                <li key={s}>
+                  <button
+                    type="button"
+                    className={i === highlighted ? 'is-active' : undefined}
+                    // Not onClick alone: clicking blurs the input, and the blur
+                    // commit would close the list before the click landed.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => choose(s)}
+                  >
+                    {s}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </span>
+
         {term.evidence ? (
           <span className="terms__evidence terms__evidence--stale">
             Changing this drops the clause it was read from.
