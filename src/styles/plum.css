@@ -2416,12 +2416,23 @@ select.ff__control {
 /* The same slots, carried onto the step that needs them. Laid out as a row so
    two of them (the claims dump and the insurer's MIS) sit side by side, and a
    single one does not stretch to the full width of the page. */
+/*
+ * Two across where there is room, one where there is not. `minmax(0, 1fr)` in
+ * the lower bound rather than a fixed 300px: inside the reference column the
+ * track cannot shrink below its minimum, so a 300px floor in a 320px column
+ * overflowed and took the filenames with it.
+ */
 .stepdocs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px;
   max-width: 900px;
   margin-top: 8px;
+  min-width: 0;
+}
+
+.stepdocs .docslot {
+  min-width: 0;
 }
 
 .stepdocs__why {
@@ -2465,6 +2476,7 @@ select.ff__control {
 }
 
 .docslot__file {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2478,6 +2490,12 @@ select.ff__control {
 .docslot__name {
   font-size: 13.5px;
   overflow-wrap: anywhere;
+  /* Long enough to recognise, short enough not to become a column of
+     letters. Three lines is two more than most filenames need. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .docslot__meta {
@@ -2486,18 +2504,51 @@ select.ff__control {
   margin-top: 2px;
 }
 
+/*
+ * The label IS the control: the styled span is what you see, the real input is
+ * hidden behind it. It was never hidden — which went unnoticed while these
+ * slots had a full page column to sprawl in, and became a native "Choose file"
+ * button sitting beside our own the moment they moved into the narrow
+ * reference column.
+ */
 .docslot__pick {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
+  min-width: 0;
   cursor: pointer;
 }
 
+.docslot__pick input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard users still need to see where focus is. */
+.docslot__pick:focus-within .button {
+  outline: 2px solid var(--plum-red);
+  outline-offset: 2px;
+}
+
 .docslot__chosen {
+  flex: 1 1 100%;
+  min-width: 0;
   font-size: 12.5px;
   color: var(--fg-2);
-  overflow-wrap: anywhere;
+  /* `anywhere` alone breaks a long filename one character per line when the
+     column is narrow. A filename is more useful truncated than shredded. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .docslot form {

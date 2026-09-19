@@ -17,6 +17,7 @@ export type DealHeader = {
   cover_start_change_note: string | null;
   linkedin_url: string | null;
   legal_name: string | null;
+  tpa_name: string | null;
   customer_name: string;
   deal_type: string;
   industry: string | null;
@@ -116,6 +117,12 @@ export function DealShell({
             <div>
               <dt>Incumbent broker</dt>
               <dd>{deal.broker_name ?? '—'}</dd>
+            </div>
+            {/* Every RFQ asks who services the claims, so it belongs with the
+                other two parties rather than only on the form. */}
+            <div>
+              <dt>TPA</dt>
+              <dd>{deal.tpa_name ?? '—'}</dd>
             </div>
           </dl>
         </div>

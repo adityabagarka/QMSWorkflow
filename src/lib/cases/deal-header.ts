@@ -21,6 +21,7 @@ type Raw = {
     id: string;
     insurer_name: string | null;
     broker_name: string | null;
+    tpa_name: string | null;
     policy_start: string | null;
     sum_insured: number | null;
     expiring_premium: number | null;
@@ -44,7 +45,7 @@ export async function loadDealHeader(dealId: string): Promise<{
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, current_phase, deal_type, policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, industry, entity_type, location, linkedin_url), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
+      'id, current_phase, deal_type, policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, industry, entity_type, location, linkedin_url), policies(id, insurer_name, broker_name, tpa_name, policy_start, sum_insured, expiring_premium)',
     )
     .eq('id', dealId)
     .maybeSingle<Raw>();
@@ -77,6 +78,7 @@ export async function loadDealHeader(dealId: string): Promise<{
       cover_start_change_note: data.cover_start_change_note,
       insurer_name: policy?.insurer_name ?? null,
       broker_name: policy?.broker_name ?? null,
+      tpa_name: policy?.tpa_name ?? null,
       policy_start: policy?.policy_start ?? null,
       expiring_premium: policy?.expiring_premium ?? null,
       lives: count ?? 0,

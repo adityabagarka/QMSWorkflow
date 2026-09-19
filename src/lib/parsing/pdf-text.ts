@@ -158,9 +158,40 @@ export function bespokePages(text: PdfText): PdfPage[] {
 }
 
 export async function readPdfText(data: ArrayBuffer): Promise<PdfText> {
-  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
-  const doc = await getDocument({ data: new Uint8Array(data), useSystemFonts: true }).promise;
+  /*
+   * Hand pdfjs its worker as a module rather than as a path.
+   *
+   * With no worker configured, pdfjs falls back to importing one by string —
+   * `GlobalWorkerOptions.workerSrc`, defaulting to "./pdf.worker.mjs" — and on
+   * Vercel that failed outright: "Cannot find module '/var/task/node_modules/
+   * pdfjs-dist/legacy/build/pdf.worker.mjs'". The file was not in the
+   * deployment, because nothing imports it: it is resolved by string at
+   * runtime, and a file tracer cannot follow a path it never reads.
+   *
+   * Setting `workerSrc` would only move the problem to shipping the file.
+   * Instead the worker is imported as a real module specifier — which the
+   * tracer does follow — and put on `globalThis.pdfjsWorker`, which pdfjs
+   * checks before it resolves anything (see `#mainThreadWorkerMessageHandler`).
+   * Nothing is looked up by path, so there is nothing to fail to find.
+   */
+  const globals = globalThis as { pdfjsWorker?: unknown };
+  globals.pdfjsWorker ??=
+    // pdfjs ships the worker as an untyped build artefact. Imported by its real
+    // specifier rather than by a path string, so the bundler traces and ships
+    // it; an ambient `declare module` cannot help here because the subpath does
+    // resolve to a file, and resolution wins over a declaration.
+    // @ts-expect-error - no types published for the worker build
+    await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(data),
+    useSystemFonts: true,
+    // Fonts are fetched by path too, and none of this needs to render a glyph.
+    disableFontFace: true,
+    useWorkerFetch: false,
+  }).promise;
   const pages: PdfPage[] = [];
   let raw = '';
 

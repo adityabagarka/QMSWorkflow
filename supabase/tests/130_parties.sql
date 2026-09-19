@@ -8,7 +8,7 @@
 -- splits every count in half.
 
 begin;
-select plan(16);
+select plan(19);
 
 create temporary table px (who text primary key, id uuid default gen_random_uuid());
 insert into px (who) values ('rm'), ('cust');
@@ -142,6 +142,35 @@ select is(
   app.resolve_broker(''),
   null,
   'an empty name creates nobody'
+);
+
+-- --------------------------------------------------------------------------
+-- In-house claims.
+--
+-- Most private general insurers and every standalone health insurer service
+-- their own claims, so the IRDAI register of third-party administrators — which
+-- is what this list is — cannot answer "who administers the claims" on its own.
+-- Without a standing option the field could only be left blank, and an
+-- underwriter reads "nobody told us" very differently from "the insurer does".
+-- --------------------------------------------------------------------------
+select ok(
+  (select count(*) from tpas where is_in_house and active) = 1,
+  'there is exactly one in-house option, not one per insurer'
+);
+
+select is(
+  (select t.short_name from tpas t
+    where exists (
+      select 1 from unnest(t.aliases) a
+       where app.fold_party_name(a) = app.fold_party_name('ICICI Lombard Healthcare')
+    )),
+  'In-house',
+  'an insurer''s own claims desk resolves to in-house rather than inventing a TPA'
+);
+
+select ok(
+  not (select is_in_house from tpas where short_name = 'Medi Assist'),
+  'and a real third-party administrator is still a third party'
 );
 
 select * from finish();

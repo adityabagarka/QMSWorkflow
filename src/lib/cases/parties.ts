@@ -10,7 +10,12 @@ import { supabaseServer } from '@/lib/db/server';
  * seen and anything new is recorded on the spot (migration 0034).
  */
 
-export type Party = { id: string; legal_name: string; short_name: string };
+export type Party = {
+  id: string;
+  legal_name: string;
+  short_name: string;
+  is_in_house?: boolean;
+};
 
 export async function partyOptions(): Promise<{
   insurers: Party[];
@@ -26,10 +31,16 @@ export async function partyOptions(): Promise<{
       .eq('active', true)
       .order('short_name')
       .returns<Party[]>(),
+    /*
+     * In-house first. Most private general insurers and every standalone
+     * health insurer service their own claims, so it is the commonest answer —
+     * and an option nobody can find is one people leave blank.
+     */
     supabase
       .from('tpas')
-      .select('id, legal_name, short_name')
+      .select('id, legal_name, short_name, is_in_house')
       .eq('active', true)
+      .order('is_in_house', { ascending: false })
       .order('short_name')
       .returns<Party[]>(),
     // Only the brokers offered as suggestions. One seen on a single deal is
