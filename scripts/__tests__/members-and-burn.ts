@@ -18,6 +18,10 @@ import {
   type MemberForCheck,
 } from '../../src/lib/members/deviations';
 import { computeBurn, comparedWithExpiring, BURN_DEFAULTS } from '../../src/lib/members/burn';
+import {
+  describeOptionDeviations,
+  governingTermsForOption,
+} from '../../src/lib/members/option-deviations';
 
 let failures = 0;
 function check(name: string, fn: () => void) {
@@ -269,6 +273,84 @@ check('the movement against what is being paid now', () => {
 
   assert.equal(comparedWithExpiring(4_000_000, 4_000_000)?.direction, 'flat');
   assert.equal(comparedWithExpiring(5_000_000, null), null, 'nothing to compare against');
+});
+
+// ── what an option asks for ───────────────────────────────────────────────
+console.log('\nchecking the roster against an option, not just the expiring policy');
+
+check('an option inherits every term it does not change', () => {
+  // rfq_option_terms stores only what an option CHANGES, so an option silent
+  // on parents is still asking for the expiring parent age limit. Merging
+  // wrong here means checking a roster against half a policy.
+  const merged = governingTermsForOption(
+    { members_covered: 'Employee, Spouse, Children, Parents', max_age_parents: '80 years' },
+    [{ benefit_key: 'max_age_parents', value: '70 years' }],
+  );
+
+  assert.equal(merged.max_age_parents, '70 years', 'the override wins');
+  assert.equal(
+    merged.members_covered,
+    'Employee, Spouse, Children, Parents',
+    'and everything it is silent about is inherited, not dropped',
+  );
+});
+
+check('an option that narrows a limit puts real lives outside it', () => {
+  const roster: MemberForCheck[] = [
+    { id: 'a', relationship: 'parent', age: 74, name: 'Parent A', employeeId: 'E1' },
+    { id: 'b', relationship: 'parent', age: 62, name: 'Parent B', employeeId: 'E2' },
+  ];
+  const expiring = { members_covered: 'Employee, Spouse, Parents', max_age_parents: '80 years' };
+
+  assert.equal(
+    findDeviations(roster, expiring, 'expiring_policy').length,
+    0,
+    'both are covered today',
+  );
+
+  const tightened = governingTermsForOption(expiring, [
+    { benefit_key: 'max_age_parents', value: '70 years' },
+  ]);
+  const found = findDeviations(roster, tightened, 'rfq');
+
+  assert.equal(found.length, 1, 'the 74-year-old falls outside the option');
+  assert.equal(found[0]?.memberId, 'a');
+});
+
+check('nobody is dropped from the roster, only flagged', () => {
+  const roster: MemberForCheck[] = [
+    { id: 'a', relationship: 'parent', age: 74, name: 'Parent A', employeeId: 'E1' },
+  ];
+  const found = findDeviations(
+    roster,
+    governingTermsForOption({ max_age_parents: '80 years' }, [
+      { benefit_key: 'max_age_parents', value: '70 years' },
+    ]),
+    'rfq',
+  );
+  assert.equal(found.length, 1);
+  assert.equal(found[0]?.memberId, 'a', 'the life is named, not removed');
+});
+
+console.log('\nhow that reads on the option column');
+
+check('a life covered today is distinguished from one already disclosed', () => {
+  assert.equal(
+    describeOptionDeviations({ total: 3, newlyOutside: 3 }),
+    '3 lives covered today fall outside these terms',
+  );
+  assert.equal(
+    describeOptionDeviations({ total: 3, newlyOutside: 0 }),
+    '3 lives outside these terms, all already disclosed',
+  );
+  assert.equal(
+    describeOptionDeviations({ total: 3, newlyOutside: 1 }),
+    '3 lives outside these terms, 1 covered today',
+  );
+});
+
+check('an option nobody falls outside says nothing at all', () => {
+  assert.equal(describeOptionDeviations({ total: 0, newlyOutside: 0 }), null);
 });
 
 if (failures > 0) {

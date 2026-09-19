@@ -28,7 +28,13 @@ export type TermRow = {
   cells: Record<string, OptionCell>;
 };
 
-export type OptionColumn = { id: string; optionNo: number; name: string };
+export type OptionColumn = {
+  id: string;
+  optionNo: number;
+  name: string;
+  /** What this option's terms would do to the roster, if there is one. */
+  lives: string | null;
+};
 
 const MARK: Record<ChangeKind, string> = {
   enhancement: '↑ enhancement',
@@ -137,6 +143,10 @@ export function TermsGrid({
               <div key={o.id}>
                 Option {o.optionNo}
                 <span className="opt-name">{o.name}</span>
+                {/* The consequence of these terms for real people, at the
+                    moment somebody is choosing them — rather than when an
+                    insurer declines a life months later. */}
+                {o.lives ? <span className="opt-lives">{o.lives}</span> : null}
                 {onRename ? (
                   <button className="terms__rename" type="button" onClick={() => onRename(o.id)}>
                     rename

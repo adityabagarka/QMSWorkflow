@@ -10,6 +10,8 @@ import { PolicyPanel } from './policy-panel';
 import { ExtractPanel } from './extract-panel';
 import { extractionConfigured } from '@/lib/extraction/policy';
 import { StepDocuments } from '@/components/step-documents';
+import { detectOptionDeviations } from './deviation-actions';
+import { describeOptionDeviations } from '@/lib/members/option-deviations';
 
 type TermRecord = {
   benefit_key: string;
@@ -149,10 +151,19 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
     };
   });
 
+  /*
+   * Checked here rather than when an option is edited: the terms it depends on
+   * are the expiring policy's, which are confirmed on this very screen, and a
+   * count computed before they were confirmed would be stale by the time
+   * anybody read it.
+   */
+  const deviationCounts = await detectOptionDeviations(params.id);
+
   const optionColumns: OptionColumn[] = (options.data ?? []).map((o) => ({
     id: o.id,
     optionNo: o.option_no,
     name: o.name,
+    lives: describeOptionDeviations(deviationCounts[o.id] ?? { total: 0, newlyOutside: 0 }),
   }));
 
   const confirmed = rows.filter((r) => r.reviewed).length;

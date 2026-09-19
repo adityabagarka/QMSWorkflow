@@ -1655,6 +1655,21 @@ input[type='text'] {
   font-variant-numeric: tabular-nums;
 }
 
+/* What an option's terms would do to the roster. Marked, because it is a
+   consequence rather than a description — somebody is about to stop asking for
+   cover that people currently have. */
+.opt-lives {
+  display: block;
+  margin-top: 4px;
+  color: var(--plum-red-deep);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.35;
+}
+
 .terms__addopt {
   border: 1px solid var(--line-lavender);
   background: var(--cream-deep);
