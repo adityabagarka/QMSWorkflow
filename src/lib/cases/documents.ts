@@ -14,8 +14,6 @@ export type DocumentKind = 'policy_copy' | 'member_data' | 'claims_dump' | 'clai
 export type DocumentSpec = {
   kind: DocumentKind;
   label: string;
-  /** What it is for, in terms of what the RM gets out of it. */
-  purpose: string;
   accept: string;
 };
 
@@ -24,25 +22,21 @@ export const REQUIRED_DOCUMENTS: DocumentSpec[] = [
   {
     kind: 'policy_copy',
     label: 'Expiring policy copy',
-    purpose: 'The terms being rolled over, and the incumbent insurer, broker and premium.',
     accept: '.pdf,image/png,image/jpeg',
   },
   {
     kind: 'member_data',
     label: 'Member data',
-    purpose: 'Who is covered, and the demography the rates are built on.',
     accept: '.csv,.xls,.xlsx',
   },
   {
     kind: 'claims_dump',
     label: 'Claims dump',
-    purpose: 'Claim-level history, which is what the burn is computed from.',
     accept: '.csv,.xls,.xlsx',
   },
   {
     kind: 'claims_mis',
     label: 'Claims MIS',
-    purpose: "The insurer's own summary, to read against the dump.",
     accept: '.csv,.xls,.xlsx,.pdf',
   },
 ];

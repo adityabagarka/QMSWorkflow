@@ -7,6 +7,7 @@ import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
 import { partyOptions } from '@/lib/cases/parties';
+import { readPolicyFactsFor } from './read-policy-facts';
 import { formatDateTime } from '@/lib/format';
 import { DealSetupForm, DEAL_SETUP_FORM_ID } from './deal-setup-form';
 
@@ -19,10 +20,13 @@ export default async function DealSetupStep({ params }: { params: { id: string }
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
 
-  const [{ industries, entityTypes }, parties, { data: deal }, { data: events }] =
+  const [{ industries, entityTypes }, parties, policyFacts, { data: deal }, { data: events }] =
     await Promise.all([
       appetiteOptions(),
       partyOptions(),
+      // Rules only — no model and no key — so it runs on every load rather than
+      // waiting for somebody to ask for it.
+      readPolicyFactsFor(params.id, null),
       supabase
         .from('cases')
         .select(
@@ -115,6 +119,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
           }}
           industries={industries}
           entityTypes={entityTypes}
+          policyFacts={policyFacts}
           insurers={parties.insurers}
           tpas={parties.tpas}
           brokers={parties.brokers}

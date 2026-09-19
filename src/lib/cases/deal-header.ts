@@ -70,6 +70,7 @@ export async function loadDealHeader(dealId: string): Promise<{
       entity_type: data.customers?.entity_type ?? null,
       location: data.customers?.location ?? null,
       linkedin_url: data.customers?.linkedin_url ?? null,
+      legal_name: data.customers?.legal_name ?? null,
       policy_expiry_date: data.policy_expiry_date,
       cover_start_date: data.cover_start_date,
       cover_start_change_reason: data.cover_start_change_reason,

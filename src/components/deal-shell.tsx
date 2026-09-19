@@ -16,6 +16,7 @@ export type DealHeader = {
   cover_start_change_reason: string | null;
   cover_start_change_note: string | null;
   linkedin_url: string | null;
+  legal_name: string | null;
   customer_name: string;
   deal_type: string;
   industry: string | null;
@@ -91,6 +92,12 @@ export function DealShell({
       >
         <div>
           <h1 className="summary__name">{deal.customer_name}</h1>
+          {/* The legal name earns its place: it is what the policy is issued
+              in and what an insurer reads, and it is not always obvious from
+              the brand name. Shown only when the two actually differ. */}
+          {deal.legal_name && deal.legal_name !== deal.customer_name ? (
+            <p className="summary__what">{deal.legal_name}</p>
+          ) : null}
           <p className="summary__what">
             {describeCompany([deal.entity_type, deal.industry, deal.location])}
           </p>

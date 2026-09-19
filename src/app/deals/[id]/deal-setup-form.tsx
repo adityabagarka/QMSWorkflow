@@ -10,6 +10,7 @@ import { constitutionFromLegalName } from '@/lib/cases/constitution';
 import { GST_INPUT_HINT } from '@/lib/format';
 import { saveDealSetup, type SaveResult } from './actions';
 import { PolicyFactsPanel } from './policy-facts-panel';
+import type { FactsResult } from './read-policy-facts';
 
 /** Shared with the page, so the step footer can submit this form. */
 export const DEAL_SETUP_FORM_ID = 'deal-setup';
@@ -66,6 +67,7 @@ export function DealSetupForm({
   insurers,
   tpas,
   brokers,
+  policyFacts,
 }: {
   dealId: string;
   initial: {
@@ -88,6 +90,7 @@ export function DealSetupForm({
   insurers: Party[];
   tpas: Party[];
   brokers: Party[];
+  policyFacts: FactsResult;
 }) {
   const [result, submit] = useFormState<SaveResult, FormData>(
     saveDealSetup.bind(null, dealId),
@@ -166,7 +169,7 @@ export function DealSetupForm({
 
   return (
     <form action={submit} id={DEAL_SETUP_FORM_ID}>
-      <PolicyFactsPanel dealId={dealId} onApply={applyFact} />
+      <PolicyFactsPanel result={policyFacts} onApply={applyFact} />
 
       <Section
         title="Company"

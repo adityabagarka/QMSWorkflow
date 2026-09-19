@@ -33,7 +33,8 @@
     "test:time": "TZ=UTC tsx scripts/__tests__/time-zone.ts && TZ=Asia/Kolkata tsx scripts/__tests__/time-zone.ts",
     "test:extraction": "tsx scripts/__tests__/policy-extraction.ts",
     "test:term-writes": "tsx scripts/__tests__/term-writes.ts",
-    "test:policy-facts": "tsx scripts/__tests__/policy-facts.ts"
+    "test:policy-facts": "tsx scripts/__tests__/policy-facts.ts",
+    "test:page-queries": "tsx scripts/__tests__/page-queries.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",

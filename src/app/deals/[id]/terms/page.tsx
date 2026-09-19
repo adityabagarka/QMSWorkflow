@@ -32,7 +32,7 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
   const [catalogue, terms, options, overrides, docs] = await Promise.all([
     supabase
       .from('benefit_catalogue')
-      .select('benefit_key, section, benefit_label, display_order, input_kind')
+      .select('benefit_key, section, benefit_label, display_order')
       .order('display_order')
       .returns<
         {
@@ -40,7 +40,6 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
           section: string;
           benefit_label: string;
           display_order: number;
-          input_kind: 'choice' | 'amount' | 'text';
         }[]
       >(),
     policyId
@@ -111,10 +110,21 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
    */
   const { data: suggestionRows } = await supabase.rpc('all_benefit_suggestions');
 
-  const suggestionsByKey = new Map(
-    ((suggestionRows ?? []) as { benefit_key: string; suggestions: string[] | null }[]).map(
-      (r) => [r.benefit_key, r.suggestions ?? []] as const,
-    ),
+  /*
+   * `input_kind` comes from here, not from benefit_catalogue. It used to be a
+   * column on the catalogue, and when migration 0039 moved the vocabulary into
+   * its own table this query kept asking for it — PostgREST errored, the
+   * catalogue came back null, and the whole terms grid rendered with no rows at
+   * all. On a real deal that read as "the terms table does not work".
+   */
+  const spec = new Map(
+    (
+      (suggestionRows ?? []) as {
+        benefit_key: string;
+        input_kind: 'choice' | 'amount' | 'text' | null;
+        suggestions: string[] | null;
+      }[]
+    ).map((r) => [r.benefit_key, r] as const),
   );
 
   const rows: TermRow[] = (catalogue.data ?? []).map((b) => {
@@ -142,8 +152,8 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
       section: b.section,
       label: b.benefit_label,
       expiring,
-      inputKind: b.input_kind,
-      suggestions: suggestionsByKey.get(b.benefit_key) ?? [],
+      inputKind: spec.get(b.benefit_key)?.input_kind ?? 'choice',
+      suggestions: spec.get(b.benefit_key)?.suggestions ?? [],
       reviewed: Boolean(term && term.review_status !== 'proposed'),
       evidence: term?.evidence_quote ?? null,
       evidencePage: term?.evidence_page ?? null,

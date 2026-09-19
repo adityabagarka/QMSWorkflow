@@ -108,6 +108,12 @@ jobs:
       - name: The terms grid write path
         run: npm run test:term-writes
 
+      # Neither typecheck nor build can see inside a Supabase select: it is a
+      # string, and the database it names is not there at compile time. A
+      # column moved by a migration once emptied the whole terms grid.
+      - name: Every column the app selects exists
+        run: npm run test:page-queries
+
       - name: Import the guardrails workbook (ARCHITECTURE.md §4.3)
         run: npm run db:import-guardrails
 

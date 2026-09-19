@@ -11,7 +11,7 @@ export default async function NewDealPage() {
       <Masthead user={session} />
 
       <section className="section">
-        <p className="eyebrow">New rollover deal</p>
+        <p className="eyebrow">New deal</p>
         <h1>Start with what you know.</h1>
         <hr className="section__rule" />
         <p className="standfirst">

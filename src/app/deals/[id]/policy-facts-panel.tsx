@@ -1,16 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
-import { readPolicyFactsFor, type FactsResult, type SuggestedFact } from './read-policy-facts';
-
-function ReadButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button className="button button--secondary" type="submit" disabled={pending}>
-      {pending ? 'reading…' : 'read the policy copy'}
-    </button>
-  );
-}
+import type { FactsResult, SuggestedFact } from './read-policy-facts';
 
 /** Which form field each fact belongs to, and what to call it on screen. */
 const FIELDS: { key: string; label: string; field?: string }[] = [
@@ -30,6 +20,11 @@ const FIELDS: { key: string; label: string; field?: string }[] = [
 /**
  * What the policy copy says, offered rather than applied.
  *
+ * Read when the step loads, not behind a button. The document was uploaded at
+ * step 1 and reading it costs nothing — no model, no key — so asking somebody
+ * to press a button to read a file they have already handed over is a step that
+ * earns nothing.
+ *
  * No model and no key — these are labelled values on a schedule and rules read
  * them for nothing. What they are not is authoritative: a schedule can carry an
  * address three renewals old, and the GSTN register beats it wherever the two
@@ -37,18 +32,14 @@ const FIELDS: { key: string; label: string; field?: string }[] = [
  * line it was read from, and a person puts it into the form or does not.
  */
 export function PolicyFactsPanel({
-  dealId,
+  result,
   onApply,
 }: {
-  dealId: string;
+  /** Read on the server when the step loaded. */
+  result: FactsResult;
   /** Puts a value into the form field it belongs to. */
   onApply: (field: string, value: string) => void;
 }) {
-  const [result, submit] = useFormState<FactsResult, FormData>(
-    (prev: FactsResult) => readPolicyFactsFor(dealId, prev),
-    null,
-  );
-
   const found = result?.ok
     ? FIELDS.map((f) => ({
         ...f,
@@ -60,9 +51,15 @@ export function PolicyFactsPanel({
     <div className="facts">
       <div className="facts__row">
         <span className="facts__what">From the policy copy</span>
-        <form action={submit}>
-          <ReadButton />
-        </form>
+        {found.length > 0 ? (
+          <button
+            type="button"
+            className="linkish"
+            onClick={() => found.forEach((f) => f.field && onApply(f.field, f.fact!.value))}
+          >
+            use all
+          </button>
+        ) : null}
       </div>
 
       {result && !result.ok ? <p className="facts__bad">{result.message}</p> : null}
@@ -72,6 +69,8 @@ export function PolicyFactsPanel({
           Nothing could be read from that document — it states none of these fields.
         </p>
       ) : null}
+
+      {result === null ? <p className="facts__bad">No policy copy uploaded yet.</p> : null}
 
       {found.length > 0 ? (
         <ul className="facts__list">

@@ -50,7 +50,6 @@ export function DocumentSlot({
       <div className="docslot__head">
         <div>
           <div className="docslot__label">{spec.label}</div>
-          <div className="docslot__purpose">{spec.purpose}</div>
         </div>
         {filled ? <span className="chip chip--settled">held</span> : null}
       </div>
