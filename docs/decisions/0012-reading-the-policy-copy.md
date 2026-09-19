@@ -10,6 +10,34 @@ The expiring policy copy is read by a model, which **proposes** the expiring
 terms. Nothing it proposes counts until a person confirms or corrects it, and
 every value it proposes carries the clause it was read from.
 
+## What the model is given
+
+**The text layer, with the insurer's filed wording removed.** Not the PDF.
+
+A policy copy is mostly not about this deal. The filed wording — the standard
+terms every insurer registers with IRDAI — is pages 15 to 55 of an ICICI
+Lombard policy and 8 to 21 of a TATA AIG one, and none of it can be
+negotiated, so none of it can be an expiring term. What a broker quotes
+against is the schedule, the benefit tables and the endorsements.
+
+Measured over fourteen readable policies from three insurers: **71% of pages
+dropped**, and what remains is about 6,000 tokens of text per policy rather
+than 26 rendered pages.
+
+Two rules make the trim safe rather than merely cheap:
+
+- **The boundary is a heading with a substantial section behind it**, not a
+  mention of one. "Scan to Download Policy Wordings." is a TATA AIG page-one
+  footer, and matching it cut a 21-page document to nothing. "Disclaimer" is a
+  real boundary for that same policy and a paragraph on page 3 of a four-page
+  Bajaj one — so a heading with almost nothing after it is not a boundary.
+- **Bajaj attaches no filed wording at all.** Their policies are three to five
+  pages. "No boundary found" therefore means send everything, never send
+  nothing.
+
+Page markers survive into the text, so a term's evidence still names the page
+in the original file and the panel can be taken there.
+
 ## Why a model at all
 
 It is the only document in the flow that needs one. The roster and the claims
@@ -99,12 +127,19 @@ this code and use — which is the right shape for it.
 
 ## What was not chosen
 
-**Citations instead of quotes.** The API can return citations that point into the
-PDF, which is stronger evidence than a quote the model reproduces. It is
-incompatible with a schema-constrained response, and the schema is what keeps
-every value tied to a `benefit_key`. A quote the reviewer can find in the panel
-beside them was judged the better trade; citations are worth revisiting when the
-two can be combined.
+**Citations instead of quotes.** The API can return citations that point into a
+document block, which is stronger evidence than a quote the model reproduces.
+Two things rule it out: it is incompatible with a schema-constrained response,
+and the schema is what keeps every value tied to a `benefit_key`; and it needs
+the PDF sent as a document, which is the thing the trim above exists to avoid.
+A quote the reviewer can find in the panel beside them, on a page the term
+names, was judged the better trade.
+
+**Sending the PDF.** Simpler, and it would let the model see tables as laid out
+rather than as flattened text. Rejected on cost once the trim was measured: a
+schedule is a few thousand tokens of text against tens of rendered pages, and
+the layout that matters — two-column label/value tables — survives the text
+extraction because items are joined by position rather than with spaces.
 
 **Extracting on upload.** Rejected with the wait itself: ADR 0011 rule 2 says the
 user is never made to watch a progress bar. Reading on demand on the terms step

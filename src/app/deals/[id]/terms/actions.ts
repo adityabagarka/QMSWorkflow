@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { supabaseServer } from '@/lib/db/server';
 import { getSession } from '@/lib/auth/session';
 import { loadDocument, readStoredFile } from '@/lib/cases/read-document';
+import { readPdfText } from '@/lib/parsing/pdf-text';
 import {
   extractPolicyTerms,
   extractionConfigured,
@@ -130,7 +131,27 @@ export async function readPolicyCopy(
     return { ok: false, message: 'The extraction could not be recorded, so it was not started.' };
   }
 
-  const outcome = await extractPolicyTerms(file.bytes, catalogue ?? []);
+  /*
+   * The text layer is read here rather than inside the extractor, so the
+   * filed wording can be trimmed before anything leaves the environment and
+   * the page markers survive into the evidence.
+   */
+  let text;
+  try {
+    text = await readPdfText(file.bytes);
+  } catch (error) {
+    await supabase
+      .from('policy_extractions')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', run.id);
+
+    return {
+      ok: false,
+      message: `That PDF could not be opened: ${error instanceof Error ? error.message : 'unknown error'}`,
+    };
+  }
+
+  const outcome = await extractPolicyTerms(text, catalogue ?? []);
 
   if (!outcome.ok) {
     await supabase

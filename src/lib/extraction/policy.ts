@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { bespokePages, type PdfText } from '@/lib/parsing/pdf-text';
 
 /**
  * Reading the expiring policy.
@@ -46,8 +47,15 @@ export type ExtractionOutcome =
       message: string;
     };
 
-/** 32 MB is the request ceiling; leave room for the prompt and base64 overhead. */
-const MAX_PDF_BYTES = 20 * 1024 * 1024;
+/**
+ * How much policy text to send.
+ *
+ * Generous — a trimmed schedule runs to a few tens of thousands of characters,
+ * well inside this — but not unbounded, because a document that arrives far
+ * larger than any real schedule is a sign the wording was not trimmed rather
+ * than a policy worth reading whole.
+ */
+const MAX_TEXT_CHARS = 400_000;
 
 /**
  * Whether extraction can run at all.
@@ -219,7 +227,7 @@ export function normaliseReported(
  * hard-coded here would be exactly the duplicate that rule forbids.
  */
 export async function extractPolicyTerms(
-  pdf: ArrayBuffer,
+  text: PdfText,
   catalogue: CatalogueEntry[],
 ): Promise<ExtractionOutcome> {
   if (!extractionConfigured()) {
@@ -238,11 +246,41 @@ export async function extractPolicyTerms(
     };
   }
 
-  if (pdf.byteLength > MAX_PDF_BYTES) {
+  if (!text.usable) {
+    return {
+      ok: false,
+      reason: 'unreadable',
+      message:
+        'That PDF has no readable text layer — it decodes to symbols rather than words. The terms will have to be entered by hand.',
+    };
+  }
+
+  /*
+   * The insurer's filed wording is dropped before anything is sent.
+   *
+   * It is the bulk of the document — pages 15 to 55 of an ICICI Lombard policy,
+   * 8 to 21 of a TATA AIG one — and none of it can be negotiated, so none of it
+   * can be an expiring term. What a broker quotes against is the schedule, the
+   * benefit tables and the endorsements, which is what is left.
+   */
+  const pages = bespokePages(text);
+  const document = pages
+    .map((p) => `===== PAGE ${p.page} =====\n${p.lines.join('\n')}`)
+    .join('\n\n');
+
+  if (document.length === 0) {
+    return {
+      ok: false,
+      reason: 'unreadable',
+      message: 'There is no readable text in that policy.',
+    };
+  }
+
+  if (document.length > MAX_TEXT_CHARS) {
     return {
       ok: false,
       reason: 'too_large',
-      message: `That policy is ${Math.round(pdf.byteLength / 1024 / 1024)} MB. The reader takes files up to ${MAX_PDF_BYTES / 1024 / 1024} MB — split it or upload the policy wording without the annexures.`,
+      message: `That policy is ${Math.round(document.length / 1000)}k characters even after the filed wording is removed, which is far larger than any schedule. Upload the schedule and endorsements without the annexures.`,
     };
   }
 
@@ -267,16 +305,18 @@ export async function extractPolicyTerms(
           role: 'user',
           content: [
             {
-              type: 'document',
-              source: {
-                type: 'base64',
-                media_type: 'application/pdf',
-                data: Buffer.from(pdf).toString('base64'),
-              },
+              /*
+               * Text, not the PDF. A document block is processed page by page
+               * with the page rendered as an image; the text layer carries
+               * everything a policy states, and the page markers below keep the
+               * evidence page numbers true to the original file.
+               */
+              type: 'text',
+              text: `POLICY TEXT\n\n${document}`,
             },
             {
               type: 'text',
-              text: `Read this policy and report each of the following benefits. Report every one — a benefit the policy does not mention is reported as not_stated, which is itself a finding the broker needs.\n\n${catalogueBrief(catalogue)}`,
+              text: `Read the policy above and report each of the following benefits. Report every one — a benefit the policy does not mention is reported as not_stated, which is itself a finding the broker needs.\n\nGive the page from the "===== PAGE n =====" marker the clause appears under, so a reviewer can find it in the original document.\n\n${catalogueBrief(catalogue)}`,
             },
           ],
         },

@@ -55,7 +55,8 @@ export function ExtractPanel({
         <div>
           <div className="extract__what">{fileName}</div>
           <div className="extract__why">
-            Every value comes back with the clause it was read from, and none of them count until
+            The insurer&rsquo;s filed wording is dropped first; only the schedule and endorsements
+            are read. Every value comes back with the clause behind it, and none of them count until
             you confirm them.
           </div>
         </div>
