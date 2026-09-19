@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { goToPolicyPage } from './policy-view';
 import type { SaveState, TermState } from './use-term-saves';
 
 const STATE_LABEL: Partial<Record<SaveState, string>> = {
@@ -167,7 +168,17 @@ export function TermCell({
       {term.evidence ? (
         <>
           <span className="terms__evidence">“{term.evidence}”</span>
-          {term.evidencePage ? <span className="terms__page">page {term.evidencePage}</span> : null}
+          {term.evidencePage ? (
+            // The clause is quoted here; this takes the panel to where it sits,
+            // which is the difference between evidence and a footnote.
+            <button
+              className="terms__page terms__page--link"
+              type="button"
+              onClick={() => goToPolicyPage(term.evidencePage!)}
+            >
+              page {term.evidencePage}
+            </button>
+          ) : null}
         </>
       ) : null}
 

@@ -188,7 +188,10 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
             {/* The policy sits beside the terms it describes, so checking a
                 clause is a glance rather than a trip to the documents screen
                 and back. */}
-            <PolicyPanel caseId={header.id} fileRef={policyDoc?.file_ref ?? null} />
+            <PolicyPanel
+              fileRef={policyDoc?.file_ref ?? null}
+              fileName={policyDoc?.file_name ?? null}
+            />
           </div>
         }
       >
