@@ -5,7 +5,7 @@ import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
-import { stageHref } from '@/lib/cases/phases';
+import { STAGE, stageHref } from '@/lib/cases/phases';
 import { formatCount, formatDate, formatRupees, GST_INPUT_HINT } from '@/lib/format';
 import { assembleRfq, rfqBlockers, BLOCKER_LABELS, BLOCKER_STEP } from '@/lib/rfq/assemble';
 
@@ -48,7 +48,7 @@ export default async function RfqStep({
         currentPhase={4}
         maxReachedPhase={Math.max(currentPhase, 4)}
         title="RFQ"
-        back={stageHref(header.id, 3)}
+        back={stageHref(header.id, STAGE.terms)}
       >
         {blockers.length > 0 ? (
           <>
@@ -85,7 +85,7 @@ export default async function RfqStep({
                     return (
                       <Link
                         key={o.id}
-                        href={`${stageHref(header.id, 4)}?option=${o.id}`}
+                        href={`${stageHref(header.id, STAGE.rfq)}?option=${o.id}`}
                         className={picked ? 'optpick__one is-picked' : 'optpick__one'}
                       >
                         <span className="optpick__no">Option {o.option_no}</span>

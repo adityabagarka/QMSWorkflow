@@ -5,7 +5,7 @@ import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
-import { stageHref } from '@/lib/cases/phases';
+import { STAGE, stageHref } from '@/lib/cases/phases';
 import { StepDocuments } from '@/components/step-documents';
 import { formatCount } from '@/lib/format';
 import { previewClaims, burnFor } from './actions';
@@ -55,8 +55,8 @@ export default async function ClaimsStep({ params }: { params: { id: string } })
         currentPhase={2}
         maxReachedPhase={Math.max(currentPhase, 3)}
         title="Claims"
-        back={stageHref(header.id, 1)}
-        next={stageHref(header.id, 3)}
+        back={stageHref(header.id, STAGE.members)}
+        next={stageHref(header.id, STAGE.terms)}
         nextLabel="terms"
         nextNote={outstanding.length > 0 ? `${outstanding.length} still to decide` : undefined}
       >

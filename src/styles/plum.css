@@ -1419,7 +1419,7 @@ input[type='text'] {
 
 .facts__list li {
   display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 70px 40px;
+  grid-template-columns: 150px minmax(0, 1fr) 70px;
   gap: 12px;
   align-items: baseline;
   padding: 5px 0;

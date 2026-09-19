@@ -11,13 +11,11 @@ import {
 import { formatDate } from '@/lib/format';
 import { removeDocument, uploadDocument, type UploadResult } from './actions';
 
-function UploadButton({ label }: { label: string }) {
+/** Says what is happening to the file that was just chosen. */
+function Uploading({ name }: { name: string }) {
   const { pending } = useFormStatus();
-  return (
-    <button className="button button--secondary" type="submit" disabled={pending}>
-      {pending ? 'uploading…' : label}
-    </button>
-  );
+  if (!name) return null;
+  return <span className="docslot__chosen">{pending ? `uploading ${name}…` : name}</span>;
 }
 
 /**
@@ -76,6 +74,12 @@ export function DocumentSlot({
         </div>
       ) : null}
 
+      {/*
+        Uploading starts the moment a file is chosen. There was an "upload"
+        button after it, which is a second instruction for a decision already
+        made — nobody picks a file they did not mean to send, and the slot is
+        the thing that says whether it arrived.
+      */}
       <form action={submit} ref={formRef}>
         <input type="hidden" name="kind" value={spec.kind} />
         <label className="docslot__pick">
@@ -83,13 +87,16 @@ export function DocumentSlot({
             type="file"
             name="file"
             accept={spec.accept}
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? '')}
+            onChange={(e) => {
+              setFileName(e.target.files?.[0]?.name ?? '');
+              if (e.target.files?.length) formRef.current?.requestSubmit();
+            }}
           />
-          <span className="button button--secondary">choose a file</span>
-          {fileName ? <span className="docslot__chosen">{fileName}</span> : null}
+          <span className="button button--secondary">
+            {filled ? 'replace this file' : 'choose a file'}
+          </span>
+          <Uploading name={fileName} />
         </label>
-
-        {fileName ? <UploadButton label={filled ? 'replace' : 'upload'} /> : null}
       </form>
 
       {result && !result.ok ? <p className="docslot__error">{result.message}</p> : null}

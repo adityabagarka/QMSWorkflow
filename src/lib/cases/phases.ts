@@ -22,6 +22,23 @@ export const STAGES = [
   { phase: 4, label: 'RFQ', slug: 'rfq' },
 ] as const;
 
+/**
+ * The steps by name.
+ *
+ * Navigation used bare numbers — `stageHref(dealId, 2)` — and when merging the
+ * first three screens shifted every step down one, a redirect that still said 2
+ * kept working and started pointing at Claims. The button said "members" and
+ * the app went somewhere else, which is the worst kind of wrong: nothing
+ * failed. A name cannot drift out of step with what it means.
+ */
+export const STAGE = {
+  deal: 0,
+  members: 1,
+  claims: 2,
+  terms: 3,
+  rfq: 4,
+} as const;
+
 export function stageLabel(phase: number): string {
   return STAGES.find((s) => s.phase === phase)?.label ?? `Stage ${phase}`;
 }

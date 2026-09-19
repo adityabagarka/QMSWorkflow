@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/db/server';
 import { getSession } from '@/lib/auth/session';
-import { stageHref } from '@/lib/cases/phases';
+import { STAGE, stageHref } from '@/lib/cases/phases';
 import { normaliseGstin } from '@/lib/cases/customers';
 import { looksLikeGstin } from '@/lib/cases/gstin';
 import { deriveCoverStart, resolveCoverStart } from '@/lib/cases/cover-start';
@@ -188,9 +188,20 @@ export async function saveDealSetup(
 
   revalidatePath(`/deals/${dealId}`);
 
-  // Saving IS "next" on this step, so the action finishes the journey rather
-  // than leaving the user on a saved form wondering whether to click again.
-  // redirect() throws, so nothing below it runs — that is how Next signals a
-  // navigation from a server action.
-  redirect(stageHref(dealId, 2));
+  /*
+   * Only the footer's button moves on.
+   *
+   * The same action also runs continuously as the form is typed into, because
+   * a step whose work is lost by clicking a wizard link is a step that loses
+   * work — which is exactly what happened on a real deal. An autosave that
+   * navigated would be unusable, so the redirect is asked for explicitly.
+   *
+   * redirect() throws, so nothing below it runs; that is how Next signals a
+   * navigation from a server action.
+   */
+  if (formData.get('advance') === 'yes') {
+    redirect(stageHref(dealId, STAGE.members));
+  }
+
+  return { ok: true };
 }

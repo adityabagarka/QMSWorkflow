@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Field, FieldRow, Input, Select, Typeahead } from '@/components/form';
 import { looksLikeGstin, lookupGstin } from '@/lib/cases/gstin';
@@ -14,11 +14,6 @@ import type { FactsResult } from './read-policy-facts';
 
 /** Shared with the page, so the step footer can submit this form. */
 export const DEAL_SETUP_FORM_ID = 'deal-setup';
-
-function Saving() {
-  const { pending } = useFormStatus();
-  return pending ? <p className="ff__hint">Saving…</p> : null;
-}
 
 /**
  * A section that can be folded away.
@@ -97,35 +92,39 @@ export function DealSetupForm({
     null,
   );
 
-  const [gstin, setGstin] = useState(initial.gstin ?? '');
-  const [name, setName] = useState(initial.legal_name);
+  /*
+   * What the policy copy says, where the deal does not say it already.
+   *
+   * Applied rather than offered. Every value used to arrive with a "use"
+   * button, which put a decision between reading and reviewing — and the
+   * reviewing is the point. A saved value is never overwritten: the register
+   * and a person both beat a schedule that can be three renewals old
+   * (ADR 0011 rule 4), so this only fills what is empty.
+   */
+  const read = policyFacts?.ok ? policyFacts.facts : {};
+  const readValue = (key: keyof typeof read, current: string | null) =>
+    current && current.trim() ? current : (read[key]?.value ?? '');
+
+  const [gstin, setGstin] = useState(readValue('gstin', initial.gstin));
+  const [name, setName] = useState(readValue('policyholderName', initial.legal_name));
   const [brand, setBrand] = useState(initial.brand_name ?? '');
   const [location, setLocation] = useState(initial.location ?? '');
   const [entityType, setEntityType] = useState(initial.entity_type ?? '');
+  const [industry, setIndustry] = useState(initial.industry ?? '');
+  const [website, setWebsite] = useState(initial.website_url ?? '');
+  const [linkedin, setLinkedin] = useState(initial.linkedin_url ?? '');
   const [lookup, setLookup] = useState<'idle' | 'found' | 'missing'>('idle');
-  const [broker, setBroker] = useState(initial.broker_name ?? '');
-  const [insurer, setInsurer] = useState(initial.insurer_name ?? '');
-  const [tpa, setTpa] = useState(initial.tpa_name ?? '');
-  const [expiry, setExpiry] = useState(initial.policy_expiry_date ?? '');
+  const [saved, setSaved] = useState<'clean' | 'saving' | 'saved' | 'error'>('clean');
+  const [broker, setBroker] = useState(readValue('brokerName', initial.broker_name));
+  const [insurer, setInsurer] = useState(readValue('insurerName', initial.insurer_name));
+  const [tpa, setTpa] = useState(readValue('tpaName', initial.tpa_name));
+  const [expiry, setExpiry] = useState(readValue('policyEnd', initial.policy_expiry_date));
   const [premium, setPremium] = useState(
-    initial.expiring_premium === null ? '' : String(initial.expiring_premium),
+    readValue(
+      'premium',
+      initial.expiring_premium === null ? null : String(initial.expiring_premium),
+    ),
   );
-
-  /*
-   * A value read off the policy copy, put into the field it belongs to. Never
-   * applied on its own: the schedule is one source among several and the
-   * register beats it, so a person decides (ADR 0011 rule 4).
-   */
-  function applyFact(field: string, value: string) {
-    if (field === 'legal_name') onLegalName(value);
-    if (field === 'gstin') setGstin(value.toUpperCase());
-    if (field === 'insurer_name') setInsurer(value);
-    if (field === 'broker_name') setBroker(value);
-    if (field === 'tpa_name') setTpa(value);
-    if (field === 'policy_expiry_date') setExpiry(value);
-    if (field === 'expiring_premium') setPremium(value);
-    setShowCompany(true);
-  }
 
   /*
    * The company details stay hidden until there is something to show: a GSTIN
@@ -167,9 +166,60 @@ export function DealSetupForm({
     if (implied && !entityType) setEntityType(implied);
   }
 
+  /*
+   * Saved as it is typed into.
+   *
+   * Only the footer button used to save, so leaving by a wizard link — which
+   * is the obvious way to go back and check something — threw away everything
+   * entered. The values read off the policy copy went with them, which made
+   * the reading pointless.
+   *
+   * Debounced, because every keystroke is not a save, and skipped on the first
+   * render so simply opening the step does not write.
+   */
+  const form = useRef<HTMLFormElement>(null);
+  const untouched = useRef(true);
+
+  useEffect(() => {
+    if (untouched.current) {
+      untouched.current = false;
+      return;
+    }
+
+    setSaved('saving');
+    const timer = setTimeout(async () => {
+      const element = form.current;
+      if (!element) return;
+
+      const values = new FormData(element);
+      values.delete('advance');
+      const result = await saveDealSetup(dealId, null, values);
+      setSaved(result && !result.ok ? 'error' : 'saved');
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [
+    dealId,
+    gstin,
+    name,
+    brand,
+    location,
+    entityType,
+    industry,
+    website,
+    linkedin,
+    insurer,
+    broker,
+    tpa,
+    expiry,
+    premium,
+  ]);
+
   return (
-    <form action={submit} id={DEAL_SETUP_FORM_ID}>
-      <PolicyFactsPanel result={policyFacts} onApply={applyFact} />
+    <form action={submit} id={DEAL_SETUP_FORM_ID} ref={form}>
+      {/* The footer's button is what moves on; everything else just saves. */}
+      <input type="hidden" name="advance" value="yes" />
+      <PolicyFactsPanel result={policyFacts} />
 
       <Section
         title="Company"
@@ -261,7 +311,8 @@ export function DealSetupForm({
                 <Input
                   type="url"
                   name="website_url"
-                  defaultValue={initial.website_url ?? ''}
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
                   placeholder="https://"
                 />
               </Field>
@@ -269,7 +320,8 @@ export function DealSetupForm({
                 <Input
                   type="url"
                   name="linkedin_url"
-                  defaultValue={initial.linkedin_url ?? ''}
+                  value={linkedin}
+                  onChange={(e) => setLinkedin(e.target.value)}
                   placeholder="https://linkedin.com/company/"
                 />
               </Field>
@@ -357,7 +409,13 @@ export function DealSetupForm({
         <p style={{ color: 'var(--plum-red-deep)', fontSize: 13.5 }}>{result.message}</p>
       ) : null}
 
-      <Saving />
+      {saved === 'saving' ? <p className="ff__hint">Saving…</p> : null}
+      {saved === 'saved' ? <p className="ff__hint">Saved.</p> : null}
+      {saved === 'error' ? (
+        <p style={{ color: 'var(--plum-red-deep)', fontSize: 13.5 }}>
+          Not saved — check the fields above.
+        </p>
+      ) : null}
     </form>
   );
 }

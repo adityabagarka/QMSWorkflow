@@ -4,7 +4,7 @@ import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
-import { stageHref } from '@/lib/cases/phases';
+import { STAGE, stageHref } from '@/lib/cases/phases';
 import { TermsGrid, type ChangeKind, type OptionColumn, type TermRow } from './terms-grid';
 import { PolicyPanel } from './policy-panel';
 import { ExtractPanel } from './extract-panel';
@@ -189,8 +189,8 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
         currentPhase={3}
         maxReachedPhase={Math.max(currentPhase, 3)}
         title="Terms and options"
-        back={stageHref(header.id, 2)}
-        next={stageHref(header.id, 4)}
+        back={stageHref(header.id, STAGE.claims)}
+        next={stageHref(header.id, STAGE.rfq)}
         nextLabel="build the RFQ"
         nextDisabled={outstanding > 0}
         wideAside

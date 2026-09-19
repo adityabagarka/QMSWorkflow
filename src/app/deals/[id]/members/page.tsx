@@ -5,7 +5,7 @@ import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
-import { stageHref } from '@/lib/cases/phases';
+import { STAGE, stageHref } from '@/lib/cases/phases';
 import { StepDocuments } from '@/components/step-documents';
 import { formatCount, formatDate } from '@/lib/format';
 import { summariseRoster } from '@/lib/parsing/roster';
@@ -91,8 +91,8 @@ export default async function MembersStep({ params }: { params: { id: string } }
         currentPhase={1}
         maxReachedPhase={Math.max(currentPhase, 2)}
         title="Members"
-        back={stageHref(header.id, 0)}
-        next={stageHref(header.id, 2)}
+        back={stageHref(header.id, STAGE.deal)}
+        next={stageHref(header.id, STAGE.claims)}
         nextLabel="claims"
       >
         {isLoaded && summary ? (
@@ -188,7 +188,8 @@ export default async function MembersStep({ params }: { params: { id: string } }
             </form>
 
             <p style={{ marginTop: 20 }}>
-              <Link href={stageHref(header.id, 0)}>Upload a corrected roster</Link> to replace this.
+              <Link href={stageHref(header.id, STAGE.deal)}>Upload a corrected roster</Link> to
+              replace this.
             </p>
           </div>
         ) : preview?.ok ? (

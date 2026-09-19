@@ -18,28 +18,19 @@ const FIELDS: { key: string; label: string; field?: string }[] = [
 ];
 
 /**
- * What the policy copy says, offered rather than applied.
+ * What the policy copy says, and where each value came from.
  *
- * Read when the step loads, not behind a button. The document was uploaded at
- * step 1 and reading it costs nothing — no model, no key — so asking somebody
- * to press a button to read a file they have already handed over is a step that
- * earns nothing.
+ * The values themselves are already in the fields below — applying them and
+ * asking somebody to review is one act, and a "use" button between the two was
+ * a decision nobody needed to make twice. What survives here is the provenance:
+ * which page each value came off, so a figure that looks wrong can be checked
+ * against the document in one click rather than argued about.
  *
- * No model and no key — these are labelled values on a schedule and rules read
- * them for nothing. What they are not is authoritative: a schedule can carry an
- * address three renewals old, and the GSTN register beats it wherever the two
- * disagree (ADR 0011 rule 4). So every value arrives as a suggestion with the
- * line it was read from, and a person puts it into the form or does not.
+ * A saved value is never overwritten by this. A schedule can carry an address
+ * three renewals old, and the register and a person both beat it (ADR 0011
+ * rule 4).
  */
-export function PolicyFactsPanel({
-  result,
-  onApply,
-}: {
-  /** Read on the server when the step loaded. */
-  result: FactsResult;
-  /** Puts a value into the form field it belongs to. */
-  onApply: (field: string, value: string) => void;
-}) {
+export function PolicyFactsPanel({ result }: { result: FactsResult }) {
   const found = result?.ok
     ? FIELDS.map((f) => ({
         ...f,
@@ -50,16 +41,11 @@ export function PolicyFactsPanel({
   return (
     <div className="facts">
       <div className="facts__row">
-        <span className="facts__what">From the policy copy</span>
-        {found.length > 0 ? (
-          <button
-            type="button"
-            className="linkish"
-            onClick={() => found.forEach((f) => f.field && onApply(f.field, f.fact!.value))}
-          >
-            use all
-          </button>
-        ) : null}
+        <span className="facts__what">
+          {found.length > 0
+            ? 'Read from the policy copy — check the fields below'
+            : 'From the policy copy'}
+        </span>
       </div>
 
       {result && !result.ok ? <p className="facts__bad">{result.message}</p> : null}
@@ -74,22 +60,11 @@ export function PolicyFactsPanel({
 
       {found.length > 0 ? (
         <ul className="facts__list">
-          {found.map(({ key, label, field, fact }) => (
+          {found.map(({ key, label, fact }) => (
             <li key={key}>
               <span className="facts__label">{label}</span>
               <span className="facts__value">{fact!.value}</span>
               <span className="facts__where">page {fact!.page}</span>
-              {field ? (
-                <button
-                  type="button"
-                  className="linkish"
-                  onClick={() => onApply(field, fact!.value)}
-                >
-                  use
-                </button>
-              ) : (
-                <span className="facts__where">—</span>
-              )}
             </li>
           ))}
         </ul>
