@@ -6,6 +6,7 @@ import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
+import { StepDocuments } from '@/components/step-documents';
 import { formatCount } from '@/lib/format';
 import { previewClaims, burnFor } from './actions';
 import { BurnPanel } from './burn-panel';
@@ -123,21 +124,17 @@ export default async function ClaimsStep({ params }: { params: { id: string } })
               </>
             ) : null}
 
-            <p style={{ marginTop: 28 }}>
-              <Link href={stageHref(header.id, 0)}>Upload a corrected dump</Link> to replace this.
-            </p>
+            <div style={{ marginTop: 28 }}>
+              <StepDocuments dealId={params.id} kinds={['claims_dump', 'claims_mis']} />
+            </div>
           </div>
         ) : preview?.ok ? (
           <ClaimsReview dealId={params.id} preview={preview} />
         ) : (
-          <div className="notice">
-            <p style={{ margin: 0 }}>
-              {preview?.message ?? 'No claims dump has been uploaded yet.'}
-            </p>
-            <p style={{ margin: '10px 0 0' }}>
-              <Link href={stageHref(header.id, 0)}>Go to documents</Link> to add it.
-            </p>
-          </div>
+          <>
+            {preview && !preview.ok ? <p className="stepdocs__why">{preview.message}</p> : null}
+            <StepDocuments dealId={params.id} kinds={['claims_dump', 'claims_mis']} />
+          </>
         )}
       </DealShell>
     </main>

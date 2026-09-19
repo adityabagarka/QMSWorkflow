@@ -9,6 +9,7 @@ import { TermsGrid, type ChangeKind, type OptionColumn, type TermRow } from './t
 import { PolicyPanel } from './policy-panel';
 import { ExtractPanel } from './extract-panel';
 import { extractionConfigured } from '@/lib/extraction/policy';
+import { StepDocuments } from '@/components/step-documents';
 
 type TermRecord = {
   benefit_key: string;
@@ -170,6 +171,8 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
           </div>
         }
       >
+        <StepDocuments dealId={params.id} kinds={['policy_copy']} />
+
         <ExtractPanel
           dealId={header.id}
           fileName={policyDoc?.file_name ?? null}

@@ -2072,6 +2072,26 @@ select.ff__control {
  * zone with a list under it would say what has arrived; four named slots say
  * what has not, which is the question this step exists to answer.
  */
+/* The same slots, carried onto the step that needs them. Laid out as a row so
+   two of them (the claims dump and the insurer's MIS) sit side by side, and a
+   single one does not stretch to the full width of the page. */
+.stepdocs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+  margin-top: 8px;
+}
+
+.stepdocs__why {
+  margin: 0 0 16px;
+  max-width: 68ch;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .docslot {
   border: 1px solid var(--line-lavender);
   background: var(--cream-deep);

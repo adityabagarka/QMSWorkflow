@@ -6,6 +6,7 @@ import { Masthead } from '@/components/masthead';
 import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
+import { StepDocuments } from '@/components/step-documents';
 import { formatCount, formatDate } from '@/lib/format';
 import { summariseRoster } from '@/lib/parsing/roster';
 import { previewRoster, detectDeviations } from './actions';
@@ -207,14 +208,10 @@ export default async function MembersStep({ params }: { params: { id: string } }
             }
           />
         ) : (
-          <div className="notice">
-            <p style={{ margin: 0 }}>
-              {preview?.message ?? 'No member data has been uploaded yet.'}
-            </p>
-            <p style={{ margin: '10px 0 0' }}>
-              <Link href={stageHref(header.id, 0)}>Go to documents</Link> to add it.
-            </p>
-          </div>
+          <>
+            {preview && !preview.ok ? <p className="stepdocs__why">{preview.message}</p> : null}
+            <StepDocuments dealId={params.id} kinds={['member_data']} />
+          </>
         )}
       </DealShell>
     </main>

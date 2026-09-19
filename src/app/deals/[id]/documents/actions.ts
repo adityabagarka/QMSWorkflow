@@ -88,7 +88,9 @@ export async function uploadDocument(
     payload: { kind, file_name: file.name },
   });
 
-  revalidatePath(`/deals/${dealId}/documents`);
+  // The slots appear on the members, claims and terms steps too, so the whole
+  // deal subtree is revalidated rather than the one page that used to hold them.
+  revalidatePath(`/deals/${dealId}`, 'layout');
   return { ok: true };
 }
 
@@ -120,7 +122,9 @@ export async function removeDocument(dealId: string, documentId: string): Promis
     payload: { kind: doc.kind, file_name: doc.file_name },
   });
 
-  revalidatePath(`/deals/${dealId}/documents`);
+  // The slots appear on the members, claims and terms steps too, so the whole
+  // deal subtree is revalidated rather than the one page that used to hold them.
+  revalidatePath(`/deals/${dealId}`, 'layout');
 }
 
 /**

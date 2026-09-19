@@ -36,14 +36,9 @@ export function ExtractPanel({
     null,
   );
 
-  if (!fileName) {
-    return (
-      <div className="extract extract--quiet">
-        No policy copy uploaded. Add one at the documents step and it can be read here; until then
-        the terms are entered by hand.
-      </div>
-    );
-  }
+  // With no policy copy there is nothing to read, and the slot to add one sits
+  // beside the grid rather than a step away.
+  if (!fileName) return null;
 
   if (!configured) {
     return (
