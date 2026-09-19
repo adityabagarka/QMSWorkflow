@@ -88,11 +88,7 @@ export function DealForm() {
         </div>
       ) : (
         <>
-          <Field
-            label="Customer"
-            wide
-            hint="Search by name or GSTIN. If they are not here yet, what you type becomes a new customer."
-          >
+          <Field label="Customer" wide>
             <Input
               name="customer_name"
               value={query}
@@ -125,7 +121,7 @@ export function DealForm() {
         </>
       )}
 
-      <Field label="Policy expiry date" hint="Cover starts the day after. Both are editable later.">
+      <Field label="Policy expiry date">
         <Input type="date" name="policy_expiry_date" />
       </Field>
 

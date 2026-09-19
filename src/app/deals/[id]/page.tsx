@@ -23,7 +23,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
     supabase
       .from('cases')
       .select(
-        'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, gstin, location, entity_type, industry, date_of_incorporation), policies(insurer_name, broker_name, expiring_premium)',
+        'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, gstin, location, entity_type, industry, website_url, linkedin_url), policies(insurer_name, broker_name, tpa_name, expiring_premium)',
       )
       .eq('id', params.id)
       .single<{
@@ -38,11 +38,13 @@ export default async function DealSetupStep({ params }: { params: { id: string }
           location: string | null;
           entity_type: string | null;
           industry: string | null;
-          date_of_incorporation: string | null;
+          website_url: string | null;
+          linkedin_url: string | null;
         } | null;
         policies: {
           insurer_name: string | null;
           broker_name: string | null;
+          tpa_name: string | null;
           expiring_premium: number | null;
         }[];
       }>(),
@@ -100,13 +102,12 @@ export default async function DealSetupStep({ params }: { params: { id: string }
             location: deal.customers?.location ?? null,
             entity_type: deal.customers?.entity_type ?? null,
             industry: deal.customers?.industry ?? null,
-            date_of_incorporation: deal.customers?.date_of_incorporation ?? null,
+            website_url: deal.customers?.website_url ?? null,
+            linkedin_url: deal.customers?.linkedin_url ?? null,
             policy_expiry_date: deal.policy_expiry_date,
-            cover_start_date: deal.cover_start_date,
-            cover_start_change_reason: deal.cover_start_change_reason,
-            cover_start_change_note: deal.cover_start_change_note,
             insurer_name: deal.policies?.[0]?.insurer_name ?? null,
             broker_name: deal.policies?.[0]?.broker_name ?? null,
+            tpa_name: deal.policies?.[0]?.tpa_name ?? null,
             expiring_premium: deal.policies?.[0]?.expiring_premium ?? null,
           }}
           industries={industries}

@@ -57,9 +57,17 @@ export async function saveDealSetup(
   // trusting the form.
   const { data: deal, error: dealError } = await supabase
     .from('cases')
-    .select('customer_id, policy_expiry_date')
+    .select(
+      'customer_id, policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note',
+    )
     .eq('id', dealId)
-    .maybeSingle<{ customer_id: string; policy_expiry_date: string | null }>();
+    .maybeSingle<{
+      customer_id: string;
+      policy_expiry_date: string | null;
+      cover_start_date: string | null;
+      cover_start_change_reason: string | null;
+      cover_start_change_note: string | null;
+    }>();
 
   if (dealError || !deal) {
     return { ok: false, message: dealError?.message ?? 'That deal could not be loaded.' };
@@ -71,11 +79,24 @@ export async function saveDealSetup(
   // moves the derivation with it and an override stays recognisable as one.
   const derived = deriveCoverStart(expiry);
 
+  /*
+   * Cover start is not on this form — it is derived, and shifting it is done
+   * deliberately from the summary, where the reason is asked for.
+   *
+   * So the stored date is carried through rather than read from the form, with
+   * one exception: a date that was merely following the old expiry follows the
+   * new one too. Without that, correcting a mistyped expiry would strand the
+   * old inception and turn it into an unexplained override.
+   */
+  const wasFollowing =
+    deal.cover_start_date === null ||
+    deal.cover_start_date === deriveCoverStart(deal.policy_expiry_date);
+
   const coverStart = resolveCoverStart({
-    coverStart: text('cover_start_date'),
+    coverStart: wasFollowing ? derived : deal.cover_start_date,
     derived,
-    reason: text('cover_start_change_reason'),
-    note: text('cover_start_change_note'),
+    reason: wasFollowing ? null : deal.cover_start_change_reason,
+    note: wasFollowing ? null : deal.cover_start_change_note,
   });
 
   if (!coverStart.ok) return { ok: false, message: coverStart.message };
@@ -89,7 +110,8 @@ export async function saveDealSetup(
       location: text('location'),
       entity_type: text('entity_type'),
       industry: text('industry'),
-      date_of_incorporation: text('date_of_incorporation'),
+      website_url: text('website_url'),
+      linkedin_url: text('linkedin_url'),
     })
     .eq('id', deal.customer_id);
 
@@ -106,6 +128,19 @@ export async function saveDealSetup(
     }
     return { ok: false, message: customerError.message };
   }
+
+  const { error: policyError } = await supabase.from('policies').upsert(
+    {
+      case_id: dealId,
+      insurer_name: text('insurer_name'),
+      broker_name: text('broker_name'),
+      tpa_name: text('tpa_name'),
+      expiring_premium: text('expiring_premium'),
+    },
+    { onConflict: 'case_id' },
+  );
+
+  if (policyError) return { ok: false, message: policyError.message };
 
   const { error: caseError } = await supabase
     .from('cases')

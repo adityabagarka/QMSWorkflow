@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { CoverStartEdit } from '@/components/cover-start-edit';
+import { deriveCoverStart } from '@/lib/cases/cover-start';
 import { STAGES, stageHref } from '@/lib/cases/phases';
 import {
   coverStartChip,
@@ -10,6 +12,10 @@ import {
 
 export type DealHeader = {
   id: string;
+  policy_expiry_date: string | null;
+  cover_start_change_reason: string | null;
+  cover_start_change_note: string | null;
+  linkedin_url: string | null;
   customer_name: string;
   deal_type: string;
   industry: string | null;
@@ -111,6 +117,17 @@ export function DealShell({
           <div className="summary__stat">
             <span className="label">Lives</span>
             <span className="figure">{deal.lives > 0 ? formatCount(deal.lives) : '—'}</span>
+            {/* A link, not a number. LinkedIn's headcount is self-reported and
+                global, so it is worth a glance beside the roster figure and
+                worth nothing as data — putting a band here would give a guess
+                the same weight as a count of real people. */}
+            {deal.linkedin_url ? (
+              <span className="under">
+                <a href={deal.linkedin_url} target="_blank" rel="noreferrer noopener">
+                  LinkedIn ↗
+                </a>
+              </span>
+            ) : null}
           </div>
           <div className="summary__stat">
             <span className="label">Expiring premium</span>
@@ -118,10 +135,16 @@ export function DealShell({
           </div>
           <div className="summary__stat">
             <span className="label">Cover starts</span>
-            <span className="figure">{formatDate(deal.cover_start_date)}</span>
-            <span className="under">
-              <span className={chip.className}>{chip.label}</span>
-            </span>
+            {/* Derived from the expiry date, so it is shown rather than asked
+                for — and changed here, where the reason is worth capturing. */}
+            <CoverStartEdit
+              dealId={deal.id}
+              coverStart={deal.cover_start_date}
+              derived={deriveCoverStart(deal.policy_expiry_date)}
+              chip={chip}
+              reason={deal.cover_start_change_reason}
+              note={deal.cover_start_change_note}
+            />
           </div>
         </div>
       </section>

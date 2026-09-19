@@ -5,13 +5,17 @@ type Raw = {
   id: string;
   current_phase: number;
   deal_type: string;
+  policy_expiry_date: string | null;
   cover_start_date: string | null;
+  cover_start_change_reason: string | null;
+  cover_start_change_note: string | null;
   customers: {
     brand_name: string | null;
     legal_name: string;
     industry: string | null;
     entity_type: string | null;
     location: string | null;
+    linkedin_url: string | null;
   } | null;
   policies: {
     id: string;
@@ -40,7 +44,7 @@ export async function loadDealHeader(dealId: string): Promise<{
   const { data } = await supabase
     .from('cases')
     .select(
-      'id, current_phase, deal_type, cover_start_date, customers(brand_name, legal_name, industry, entity_type, location), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
+      'id, current_phase, deal_type, policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, industry, entity_type, location, linkedin_url), policies(id, insurer_name, broker_name, policy_start, sum_insured, expiring_premium)',
     )
     .eq('id', dealId)
     .maybeSingle<Raw>();
@@ -65,7 +69,11 @@ export async function loadDealHeader(dealId: string): Promise<{
       industry: data.customers?.industry ?? null,
       entity_type: data.customers?.entity_type ?? null,
       location: data.customers?.location ?? null,
+      linkedin_url: data.customers?.linkedin_url ?? null,
+      policy_expiry_date: data.policy_expiry_date,
       cover_start_date: data.cover_start_date,
+      cover_start_change_reason: data.cover_start_change_reason,
+      cover_start_change_note: data.cover_start_change_note,
       insurer_name: policy?.insurer_name ?? null,
       broker_name: policy?.broker_name ?? null,
       policy_start: policy?.policy_start ?? null,
