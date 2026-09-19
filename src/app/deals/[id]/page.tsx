@@ -6,6 +6,7 @@ import { DealShell } from '@/components/deal-shell';
 import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
+import { partyOptions } from '@/lib/cases/parties';
 import { formatDateTime } from '@/lib/format';
 import { DealSetupForm, DEAL_SETUP_FORM_ID } from './deal-setup-form';
 
@@ -18,44 +19,46 @@ export default async function DealSetupStep({ params }: { params: { id: string }
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
 
-  const [{ industries, entityTypes }, { data: deal }, { data: events }] = await Promise.all([
-    appetiteOptions(),
-    supabase
-      .from('cases')
-      .select(
-        'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, gstin, location, entity_type, industry, website_url, linkedin_url), policies(insurer_name, broker_name, tpa_name, expiring_premium)',
-      )
-      .eq('id', params.id)
-      .single<{
-        policy_expiry_date: string | null;
-        cover_start_date: string | null;
-        cover_start_change_reason: string | null;
-        cover_start_change_note: string | null;
-        customers: {
-          brand_name: string | null;
-          legal_name: string;
-          gstin: string | null;
-          location: string | null;
-          entity_type: string | null;
-          industry: string | null;
-          website_url: string | null;
-          linkedin_url: string | null;
-        } | null;
-        policies: {
-          insurer_name: string | null;
-          broker_name: string | null;
-          tpa_name: string | null;
-          expiring_premium: number | null;
-        }[];
-      }>(),
-    supabase
-      .from('case_events')
-      .select('event_type, created_at')
-      .eq('case_id', params.id)
-      .order('created_at', { ascending: false })
-      .limit(6)
-      .returns<{ event_type: string; created_at: string }[]>(),
-  ]);
+  const [{ industries, entityTypes }, parties, { data: deal }, { data: events }] =
+    await Promise.all([
+      appetiteOptions(),
+      partyOptions(),
+      supabase
+        .from('cases')
+        .select(
+          'policy_expiry_date, cover_start_date, cover_start_change_reason, cover_start_change_note, customers(brand_name, legal_name, gstin, location, entity_type, industry, website_url, linkedin_url), policies(insurer_name, broker_name, tpa_name, expiring_premium)',
+        )
+        .eq('id', params.id)
+        .single<{
+          policy_expiry_date: string | null;
+          cover_start_date: string | null;
+          cover_start_change_reason: string | null;
+          cover_start_change_note: string | null;
+          customers: {
+            brand_name: string | null;
+            legal_name: string;
+            gstin: string | null;
+            location: string | null;
+            entity_type: string | null;
+            industry: string | null;
+            website_url: string | null;
+            linkedin_url: string | null;
+          } | null;
+          policies: {
+            insurer_name: string | null;
+            broker_name: string | null;
+            tpa_name: string | null;
+            expiring_premium: number | null;
+          }[];
+        }>(),
+      supabase
+        .from('case_events')
+        .select('event_type, created_at')
+        .eq('case_id', params.id)
+        .order('created_at', { ascending: false })
+        .limit(6)
+        .returns<{ event_type: string; created_at: string }[]>(),
+    ]);
 
   if (!deal) notFound();
 
@@ -112,6 +115,9 @@ export default async function DealSetupStep({ params }: { params: { id: string }
           }}
           industries={industries}
           entityTypes={entityTypes}
+          insurers={parties.insurers}
+          tpas={parties.tpas}
+          brokers={parties.brokers}
         />
       </DealShell>
     </main>

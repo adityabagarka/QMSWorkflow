@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { Field, FieldRow, Input, Select, Typeahead } from '@/components/form';
 import { looksLikeGstin, lookupGstin } from '@/lib/cases/gstin';
 import { searchCities } from '@/lib/cases/cities';
+import type { Party } from '@/lib/cases/parties';
 import { constitutionFromLegalName } from '@/lib/cases/constitution';
 import { GST_INPUT_HINT } from '@/lib/format';
 import { saveDealSetup, type SaveResult } from './actions';
@@ -61,6 +62,9 @@ export function DealSetupForm({
   initial,
   industries,
   entityTypes,
+  insurers,
+  tpas,
+  brokers,
 }: {
   dealId: string;
   initial: {
@@ -80,6 +84,9 @@ export function DealSetupForm({
   };
   industries: string[];
   entityTypes: string[];
+  insurers: Party[];
+  tpas: Party[];
+  brokers: Party[];
 }) {
   const [result, submit] = useFormState<SaveResult, FormData>(
     saveDealSetup.bind(null, dealId),
@@ -92,6 +99,7 @@ export function DealSetupForm({
   const [location, setLocation] = useState(initial.location ?? '');
   const [entityType, setEntityType] = useState(initial.entity_type ?? '');
   const [lookup, setLookup] = useState<'idle' | 'found' | 'missing'>('idle');
+  const [broker, setBroker] = useState(initial.broker_name ?? '');
 
   /*
    * The company details stay hidden until there is something to show: a GSTIN
@@ -250,17 +258,46 @@ export function DealSetupForm({
 
       <Section title="Expiring programme" defaultOpen>
         <FieldRow>
+          {/* Closed lists: there are about thirty insurers and twenty TPAs, and
+              naming one outside them is a mistake rather than a gap. */}
           <Field label="Incumbent insurer">
-            <Input name="insurer_name" defaultValue={initial.insurer_name ?? ''} />
+            <Select
+              name="insurer_name"
+              options={insurers.map((i) => i.short_name)}
+              defaultValue={initial.insurer_name ?? ''}
+            />
           </Field>
+          {/* Open: several hundred brokers exist and we meet perhaps fifty, so
+              the suggestions are the ones we have seen and anything else is
+              recorded on the spot rather than refused. */}
           <Field label="Incumbent broker">
-            <Input name="broker_name" defaultValue={initial.broker_name ?? ''} />
+            <Typeahead
+              name="broker_name"
+              value={broker}
+              onChange={setBroker}
+              search={(q) => {
+                const needle = q.trim().toLowerCase();
+                if (needle.length < 2) return [];
+                return brokers
+                  .filter(
+                    (b) =>
+                      b.short_name.toLowerCase().includes(needle) ||
+                      b.legal_name.toLowerCase().includes(needle),
+                  )
+                  .map((b) => b.short_name)
+                  .slice(0, 8);
+              }}
+            />
           </Field>
         </FieldRow>
 
         <FieldRow>
           <Field label="TPA">
-            <Input name="tpa_name" defaultValue={initial.tpa_name ?? ''} />
+            <Select
+              name="tpa_name"
+              options={tpas.map((t) => t.short_name)}
+              defaultValue={initial.tpa_name ?? ''}
+            />
           </Field>
           <Field label="Expiring premium" hint={GST_INPUT_HINT}>
             <Input

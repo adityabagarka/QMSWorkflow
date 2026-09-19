@@ -8,6 +8,7 @@ import { stageHref } from '@/lib/cases/phases';
 import { normaliseGstin } from '@/lib/cases/customers';
 import { looksLikeGstin } from '@/lib/cases/gstin';
 import { deriveCoverStart, resolveCoverStart } from '@/lib/cases/cover-start';
+import { idForName, partyOptions, resolveBroker } from '@/lib/cases/parties';
 
 export type SaveResult = { ok: true } | { ok: false; message: string } | null;
 
@@ -129,12 +130,31 @@ export async function saveDealSetup(
     return { ok: false, message: customerError.message };
   }
 
+  /*
+   * The names are kept as typed and the ids are resolved beside them (0036).
+   * The text is provenance — an old schedule really does say "Reliance
+   * General" — and the id is what a screen or a count uses, which is why
+   * "Reliance General" has to resolve to IndusInd rather than to a new row.
+   *
+   * A broker nobody has recorded before is created here rather than refused:
+   * an unfamiliar broker is an ordinary fact about a deal, and waiting for an
+   * admin to approve the name would block an RFQ on somebody else's inbox.
+   */
+  const insurerName = text('insurer_name');
+  const tpaName = text('tpa_name');
+  const brokerName = text('broker_name');
+
+  const { insurers, tpas } = await partyOptions();
+
   const { error: policyError } = await supabase.from('policies').upsert(
     {
       case_id: dealId,
-      insurer_name: text('insurer_name'),
-      broker_name: text('broker_name'),
-      tpa_name: text('tpa_name'),
+      insurer_name: insurerName,
+      insurer_id: idForName(insurers, insurerName),
+      broker_name: brokerName,
+      broker_id: await resolveBroker(brokerName),
+      tpa_name: tpaName,
+      tpa_id: idForName(tpas, tpaName),
       expiring_premium: text('expiring_premium'),
     },
     { onConflict: 'case_id' },
