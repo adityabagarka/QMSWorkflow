@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { TermCell } from './term-cell';
 
 export type ChangeKind = 'enhancement' | 'restriction' | 'changed';
 
@@ -47,10 +48,12 @@ const MARK: Record<ChangeKind, string> = {
  * needs the words, not a cross-reference.
  */
 export function TermsGrid({
+  dealId,
   rows,
   options,
   onRename,
 }: {
+  dealId: string;
   rows: TermRow[];
   options: OptionColumn[];
   onRename?: (optionId: string) => void;
@@ -73,20 +76,22 @@ export function TermsGrid({
 
   return (
     <>
-      <p className="terms__key">
-        <span>
-          <i className="k-enh" />
-          Enhancement — more cover, expect it to cost
-        </span>
-        <span>
-          <i className="k-res" />
-          Restriction — less cover, ask for a discount
-        </span>
-        <span>
-          <i className="k-chg" />
-          Changed — direction is a judgement call
-        </span>
-      </p>
+      {options.length === 0 ? null : (
+        <p className="terms__key">
+          <span>
+            <i className="k-enh" />
+            Enhancement — more cover, expect it to cost
+          </span>
+          <span>
+            <i className="k-res" />
+            Restriction — less cover, ask for a discount
+          </span>
+          <span>
+            <i className="k-chg" />
+            Changed — direction is a judgement call
+          </span>
+        </p>
+      )}
 
       <div className="terms">
         <div className="terms__grid" style={{ gridTemplateColumns: template }}>
@@ -136,24 +141,14 @@ export function TermsGrid({
                   : sectionRows.map((row) => (
                       <div key={row.benefitKey} style={{ display: 'contents' }}>
                         <div className="terms__cell terms__cell--label">{row.label}</div>
-                        <div className="terms__cell">
-                          {row.expiring ?? <span className="terms__unset">not confirmed</span>}
-                          {/* A value a model proposed shows the clause it came
-                              from. Confirming a term means agreeing with the
-                              policy, which you cannot do without seeing what
-                              the policy said. */}
-                          {row.evidence ? (
-                            <>
-                              <span className="terms__evidence">“{row.evidence}”</span>
-                              {/* Outside the clamped quote: a long clause hides
-                                  its own last line, and the page number is the
-                                  part that has to survive to be useful. */}
-                              {row.evidencePage ? (
-                                <span className="terms__page">page {row.evidencePage}</span>
-                              ) : null}
-                            </>
-                          ) : null}
-                        </div>
+                        <TermCell
+                          dealId={dealId}
+                          benefitKey={row.benefitKey}
+                          value={row.expiring}
+                          reviewed={row.reviewed}
+                          evidence={row.evidence}
+                          evidencePage={row.evidencePage}
+                        />
                         {options.map((o) => {
                           const cell = row.cells[o.id];
                           const kind = cell?.kind ?? 'changed';

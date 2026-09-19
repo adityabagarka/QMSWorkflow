@@ -7,7 +7,7 @@
 -- quotes against them. So the rules live in the table and are asserted here.
 
 begin;
-select plan(14);
+select plan(20);
 
 create temporary table ex (who text primary key, id uuid default gen_random_uuid());
 insert into ex (who) values ('rm'), ('cust');
@@ -168,6 +168,77 @@ select is(
       and review_status = 'proposed'),
   0,
   'once reviewed, neither extracted term is still proposed'
+);
+
+-- --------------------------------------------------------------------------
+-- The manual path: a person who knows the terms, with no model involved.
+--
+-- This has to work with no extraction on the case at all. It is how a deal
+-- proceeds when the policy copy is unreadable, unavailable, or simply has not
+-- arrived — the document is required to dispatch an RFQ, never to build one.
+-- --------------------------------------------------------------------------
+insert into benefit_catalogue (benefit_key, display_order, section, benefit_label)
+values ('extract_benefit_typed', 9103, 'The basics', 'Extract Benefit Typed')
+on conflict (benefit_key) do nothing;
+
+select lives_ok(
+  $$ insert into policy_terms
+       (case_id, policy_id, benefit_key, value, source, review_status, reviewed_by, reviewed_at)
+     values ('bbbb3333-0000-0000-0000-000000000001', 'bbbb3333-0000-0000-0000-000000000002',
+             'extract_benefit_typed', 'Rs. 7,500 per day', 'manual',
+             'confirmed', exid('rm'), now()) $$,
+  'a term typed by a person needs no extraction, no run and no clause'
+);
+
+select is(
+  (select source::text from policy_terms
+    where benefit_key = 'extract_benefit_typed'
+      and policy_id = 'bbbb3333-0000-0000-0000-000000000002'),
+  'manual',
+  'a typed term is attributed to the person, not to a reader'
+);
+
+select is(
+  (select review_status::text from policy_terms
+    where benefit_key = 'extract_benefit_typed'
+      and policy_id = 'bbbb3333-0000-0000-0000-000000000002'),
+  'confirmed',
+  'typing a value is the review — there is nobody else to agree with it'
+);
+
+-- A typed term must still say who decided it. Without that, "confirmed" is a
+-- colour on a screen rather than a record of a decision (0017).
+select throws_ok(
+  $$ insert into policy_terms
+       (case_id, policy_id, benefit_key, value, source, review_status)
+     values ('bbbb3333-0000-0000-0000-000000000001', 'bbbb3333-0000-0000-0000-000000000002',
+             'extract_benefit_two', 'Covered', 'manual', 'confirmed') $$,
+  23514,
+  null,
+  'a confirmed term with nobody attached to it is refused'
+);
+
+-- --------------------------------------------------------------------------
+-- Correcting a proposal drops the clause behind it.
+--
+-- The quote was evidence for the value the model read. Left beside a different
+-- value it would make the policy appear to say something it does not, which is
+-- worse than no evidence at all.
+-- --------------------------------------------------------------------------
+select is(
+  (select evidence_quote from policy_terms
+    where benefit_key = 'extract_benefit_one'
+      and policy_id = 'bbbb3333-0000-0000-0000-000000000002'),
+  null,
+  'a corrected term carries no clause'
+);
+
+select isnt(
+  (select extraction_id from policy_terms
+    where benefit_key = 'extract_benefit_one'
+      and policy_id = 'bbbb3333-0000-0000-0000-000000000002'),
+  null,
+  'but it still names the run that proposed it, so the correction stays traceable'
 );
 
 -- --------------------------------------------------------------------------

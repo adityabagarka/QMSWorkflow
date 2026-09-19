@@ -1287,6 +1287,94 @@ input[type='text'] {
   white-space: nowrap;
 }
 
+/* ── Entering and confirming an expiring term ────────────────────────────── */
+
+/*
+ * The cell is the editor, so the button that opens it has to read as the value
+ * and not as a control: no border, no background, inheriting type. The affordance
+ * is the hover, which is enough for a grid where every cell behaves the same.
+ */
+.terms__edit {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: text;
+}
+
+.terms__edit:hover {
+  box-shadow: inset 0 -1px 0 var(--line-lavender);
+}
+
+.terms__edit:focus-visible {
+  outline: 2px solid var(--plum-red);
+  outline-offset: 2px;
+}
+
+.terms__input {
+  width: 100%;
+  border: 1px solid var(--plum-red);
+  border-radius: 4px;
+  background: var(--cream);
+  padding: 6px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg-1);
+}
+
+.terms__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--plum-red-wash, rgba(255, 64, 82, 0.15));
+}
+
+/* A term nobody has decided on yet. Marked on the cell rather than by a badge:
+   the whole column has to be readable at a glance as "what is left to do". */
+.terms__cell--proposed {
+  background: var(--cream-deep);
+}
+
+.terms__confirm {
+  display: inline-block;
+  margin-top: 6px;
+  border: 1px solid var(--line-lavender);
+  border-radius: 4px;
+  background: var(--cream);
+  color: var(--plum-red);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.terms__confirm:hover:not(:disabled) {
+  border-color: var(--plum-red);
+}
+
+.terms__confirm:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.terms__evidence--stale {
+  color: var(--plum-red-deep);
+  font-style: italic;
+}
+
+.terms__error {
+  display: block;
+  margin-top: 4px;
+  color: var(--plum-red-deep);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+}
+
 /* ── Reading the policy copy ─────────────────────────────────────────────── */
 
 .extract {

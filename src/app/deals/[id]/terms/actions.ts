@@ -242,3 +242,113 @@ export async function readPolicyCopy(
     disagreements,
   };
 }
+
+export type TermSaveResult = { ok: true; value: string | null } | { ok: false; message: string };
+
+/**
+ * Records a person's decision about one expiring term.
+ *
+ * This is the path that has to work when there is no model, no key, and no
+ * readable policy copy — the RM knows the terms and wants to build option sets
+ * now, with the document attached later at dispatch (ADR 0012, and the gate in
+ * `rfq_blockers`). It is also the path every extracted term ends on, because
+ * an extraction only ever proposes.
+ *
+ * Three shapes, and the difference between them is kept rather than flattened:
+ *
+ *  - Typed where nothing was proposed → `manual`, `confirmed`. A person is the
+ *    source and the review at once.
+ *  - A proposal agreed with unchanged → stays `extracted`, becomes `confirmed`,
+ *    and keeps its clause: the quote still supports the value.
+ *  - A proposal changed → becomes `manual` and `corrected`, the clause is
+ *    dropped, and the before/after is appended to `policy_extraction_edits`.
+ *    The clause has to go: it was evidence for the value the model read, and
+ *    leaving it beside a different value would make the policy appear to say
+ *    something it does not. The run is still named by `extraction_id`, so the
+ *    correction stays traceable to what proposed it.
+ */
+export async function saveTerm(
+  dealId: string,
+  benefitKey: string,
+  raw: string | null,
+): Promise<TermSaveResult> {
+  const session = await getSession();
+  if (!session || session.status !== 'active') {
+    return { ok: false, message: 'Your access is not active.' };
+  }
+
+  const value = raw === null ? null : raw.trim() || null;
+
+  const supabase = supabaseServer();
+
+  const policyId = await policyIdFor(dealId);
+  if (!policyId) {
+    return { ok: false, message: 'The expiring policy record could not be created.' };
+  }
+
+  const { data: existing } = await supabase
+    .from('policy_terms')
+    .select('id, value, source, evidence_quote, evidence_page, extraction_id')
+    .eq('policy_id', policyId)
+    .eq('benefit_key', benefitKey)
+    .maybeSingle<{
+      id: string;
+      value: string | null;
+      source: string;
+      evidence_quote: string | null;
+      evidence_page: number | null;
+      extraction_id: string | null;
+    }>();
+
+  const proposed = existing?.source === 'extracted';
+  const unchanged = existing ? (existing.value ?? null) === value : false;
+  const now = new Date().toISOString();
+
+  const row = {
+    case_id: dealId,
+    policy_id: policyId,
+    benefit_key: benefitKey,
+    value,
+    source: proposed && unchanged ? ('extracted' as const) : ('manual' as const),
+    review_status: proposed && unchanged ? ('confirmed' as const) : ('corrected' as const),
+    reviewed_by: session.userId,
+    reviewed_at: now,
+    evidence_quote: proposed && unchanged ? existing?.evidence_quote : null,
+    evidence_page: proposed && unchanged ? existing?.evidence_page : null,
+    extraction_id: existing?.extraction_id ?? null,
+    updated_at: now,
+  };
+
+  const { error } = await supabase
+    .from('policy_terms')
+    .upsert(row, { onConflict: 'policy_id,benefit_key' });
+
+  if (error) return { ok: false, message: error.message };
+
+  // The eval signal (§8): what the model said, what a person made it, per
+  // field, over time. Appended only where there was something to correct.
+  if (proposed && !unchanged && existing?.extraction_id) {
+    await supabase.from('policy_extraction_edits').insert({
+      case_id: dealId,
+      extraction_id: existing.extraction_id,
+      benefit_key: benefitKey,
+      original_value: existing.value,
+      corrected_value: value,
+      corrected_by: session.userId,
+    });
+  }
+
+  await supabase.from('audit_log').insert({
+    entity_type: 'policy_terms',
+    entity_id: policyId,
+    action: existing ? 'update' : 'create',
+    actor_type: 'user',
+    actor_id: session.userId,
+    before: existing ? { benefit_key: benefitKey, value: existing.value } : null,
+    after: { benefit_key: benefitKey, value, review_status: row.review_status },
+  });
+
+  revalidatePath(`/deals/${dealId}/terms`);
+
+  return { ok: true, value };
+}

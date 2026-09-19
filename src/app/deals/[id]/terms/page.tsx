@@ -177,13 +177,11 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
           alreadyRead={rows.some((r) => r.evidence !== null)}
         />
 
-        {optionColumns.length === 0 ? (
-          <p className="empty">
-            No options yet. Option 1 is the expiring terms unchanged; add more to vary them.
-          </p>
-        ) : (
-          <TermsGrid rows={rows} options={optionColumns} />
-        )}
+        {/* Always the grid, options or not. The expiring column is the work of
+            this step and has to be fillable before any option exists — a deal
+            with no policy copy starts here, with nothing but a person who knows
+            the terms. */}
+        <TermsGrid dealId={header.id} rows={rows} options={optionColumns} />
       </DealShell>
     </main>
   );
