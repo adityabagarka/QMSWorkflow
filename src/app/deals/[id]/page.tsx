@@ -7,6 +7,7 @@ import { loadDealHeader } from '@/lib/cases/deal-header';
 import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
 import { partyOptions } from '@/lib/cases/parties';
+import { StepDocuments } from '@/components/step-documents';
 import { readPolicyFactsFor } from './read-policy-facts';
 import { formatDateTime } from '@/lib/format';
 import { DealSetupForm, DEAL_SETUP_FORM_ID } from './deal-setup-form';
@@ -68,36 +69,49 @@ export default async function DealSetupStep({ params }: { params: { id: string }
 
   return (
     <main className="shell">
-      <Masthead
-        user={session}
-        dealTitle={header.customer_name}
-        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
-      />
+      <Masthead user={session} dealTitle={header.customer_name} />
 
       <DealShell
         deal={header}
-        currentPhase={1}
-        maxReachedPhase={Math.max(currentPhase, 2)}
-        title="Deal setup"
-        back={stageHref(header.id, 0)}
+        currentPhase={0}
+        maxReachedPhase={Math.max(currentPhase, 1)}
+        title="Deal"
+        back="/deals"
+        backLabel="back to deals"
         nextForm={DEAL_SETUP_FORM_ID}
         nextLabel="members"
         aside={
-          <div className="aside-block">
-            <h3>Activity</h3>
-            {events && events.length > 0 ? (
-              <ul className="timeline">
-                {events.map((e, i) => (
-                  <li key={i}>
-                    {e.event_type.replace(/_/g, ' ')}
-                    <span className="timeline__when">{formatDateTime(e.created_at)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="ff__hint">Nothing recorded yet.</p>
-            )}
-          </div>
+          <>
+            {/*
+              The documents sit beside the fields they fill, not a step away.
+              Uploading the policy copy here is what makes the facts above those
+              fields appear — which is the whole reason these screens were
+              merged (ADR 0013).
+            */}
+            <div className="aside-block">
+              <h3>Documents</h3>
+              <StepDocuments
+                dealId={params.id}
+                kinds={['policy_copy', 'member_data', 'claims_dump', 'claims_mis']}
+              />
+            </div>
+
+            <div className="aside-block">
+              <h3>Activity</h3>
+              {events && events.length > 0 ? (
+                <ul className="timeline">
+                  {events.map((e, i) => (
+                    <li key={i}>
+                      {e.event_type.replace(/_/g, ' ')}
+                      <span className="timeline__when">{formatDateTime(e.created_at)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="ff__hint">Nothing recorded yet.</p>
+              )}
+            </div>
+          </>
         }
       >
         <DealSetupForm

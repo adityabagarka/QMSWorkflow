@@ -46,6 +46,7 @@ export function DealShell({
   children,
   aside,
   back,
+  backLabel = 'back',
   next,
   nextLabel = 'next',
   nextDisabled = false,
@@ -60,6 +61,7 @@ export function DealShell({
   children: React.ReactNode;
   aside?: React.ReactNode;
   back?: string;
+  backLabel?: string;
   next?: string;
   nextLabel?: string;
   nextDisabled?: boolean;
@@ -91,12 +93,16 @@ export function DealShell({
         }
       >
         <div>
+          {/*
+            Three lines, in the order somebody reads them. The brand name is
+            what everyone says and carries the weight. The legal name is what
+            the policy is issued in and what an insurer reads — its own line,
+            because it is a different fact, not a qualifier on the first. Then
+            the facts that place the company.
+          */}
           <h1 className="summary__name">{deal.customer_name}</h1>
-          {/* The legal name earns its place: it is what the policy is issued
-              in and what an insurer reads, and it is not always obvious from
-              the brand name. Shown only when the two actually differ. */}
           {deal.legal_name && deal.legal_name !== deal.customer_name ? (
-            <p className="summary__what">{deal.legal_name}</p>
+            <p className="summary__legal">{deal.legal_name}</p>
           ) : null}
           <p className="summary__what">
             {describeCompany([deal.entity_type, deal.industry, deal.location])}
@@ -197,7 +203,7 @@ export function DealShell({
       <div className="stepfoot">
         {back ? (
           <Link className="button button--secondary" href={back}>
-            back
+            {backLabel}
           </Link>
         ) : (
           <span />

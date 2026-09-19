@@ -1,22 +1,25 @@
 /**
- * The six steps a deal moves through (ADR 0011, §11, §14 screen 2).
+ * The five steps a deal moves through (ADR 0011, ADR 0013, §11, §14 screen 2).
  *
- * Documents first. The wizard is a review pipeline, not a data-entry form: step
- * 1 collects the evidence, steps 2 to 5 each confirm one slice of what was read
- * from it, and step 6 assembles. Nothing in step 1 is mandatory — the documents
- * do not arrive together and a deal must be able to start before they do — but
- * all four are required to dispatch an RFQ at step 6, which is where the
- * obligation actually bites.
+ * The first step is the deal: who it is for, the documents it is built from,
+ * and the expiring programme those documents describe. Those were three screens
+ * — name the customer, upload the files, fill in the setup — and they are one
+ * question asked three times, with a round trip between each. Merged, the
+ * policy copy lands beside the fields it fills and the facts read out of it
+ * appear directly above them.
+ *
+ * Nothing in step 1 is mandatory beyond a customer. The documents do not arrive
+ * together and a deal must be able to start before they do; all four are
+ * required to dispatch an RFQ at step 5, which is where the obligation bites.
  *
  * Labels are presentation; `cases.current_phase` stores the number.
  */
 export const STAGES = [
-  { phase: 0, label: 'Documents', slug: 'documents' },
-  { phase: 1, label: 'Deal setup', slug: '' },
-  { phase: 2, label: 'Members', slug: 'members' },
-  { phase: 3, label: 'Claims', slug: 'claims' },
-  { phase: 4, label: 'Terms & options', slug: 'terms' },
-  { phase: 5, label: 'RFQ', slug: 'rfq' },
+  { phase: 0, label: 'Deal', slug: '' },
+  { phase: 1, label: 'Members', slug: 'members' },
+  { phase: 2, label: 'Claims', slug: 'claims' },
+  { phase: 3, label: 'Terms & options', slug: 'terms' },
+  { phase: 4, label: 'RFQ', slug: 'rfq' },
 ] as const;
 
 export function stageLabel(phase: number): string {

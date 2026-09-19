@@ -49,18 +49,14 @@ export default async function ClaimsStep({ params }: { params: { id: string } })
 
   return (
     <main className="shell">
-      <Masthead
-        user={session}
-        dealTitle={header.customer_name}
-        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
-      />
+      <Masthead user={session} dealTitle={header.customer_name} />
       <DealShell
         deal={header}
-        currentPhase={3}
-        maxReachedPhase={Math.max(currentPhase, 4)}
+        currentPhase={2}
+        maxReachedPhase={Math.max(currentPhase, 3)}
         title="Claims"
-        back={stageHref(header.id, 2)}
-        next={stageHref(header.id, 4)}
+        back={stageHref(header.id, 1)}
+        next={stageHref(header.id, 3)}
         nextLabel="terms"
         nextNote={outstanding.length > 0 ? `${outstanding.length} still to decide` : undefined}
       >

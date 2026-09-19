@@ -4,6 +4,7 @@ import { supabaseServer } from '@/lib/db/server';
 import { Masthead } from '@/components/masthead';
 import { stageLabel } from '@/lib/cases/phases';
 import { coverStartChip, describeCompany, formatCount, formatDate } from '@/lib/format';
+import { DiscardDraft } from './draft-row';
 
 type DealRow = {
   id: string;
@@ -35,6 +36,22 @@ export default async function DealsPage() {
 
   const deals = data ?? [];
 
+  /*
+   * Which of these are still drafts. Asked of the database rather than guessed
+   * from `current_phase`: the rule is "nobody has put anything into it", and
+   * only the database can see the roster, the documents and the terms at once
+   * (migration 0041). One round trip for the page, not one per row.
+   */
+  const drafts = new Set<string>();
+  await Promise.all(
+    deals
+      .filter((deal) => deal.owner_user_id === session.userId)
+      .map(async (deal) => {
+        const { data: isDraft } = await supabase.rpc('case_is_draft', { p_case_id: deal.id });
+        if (isDraft) drafts.add(deal.id);
+      }),
+  );
+
   return (
     <main className="shell">
       <Masthead user={session} />
@@ -59,6 +76,7 @@ export default async function DealsPage() {
                   <th>Stage</th>
                   <th>Lives</th>
                   <th>Owner</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -97,6 +115,11 @@ export default async function DealsPage() {
                         {deal.owner_user_id === session.userId
                           ? 'You'
                           : (deal.app_users?.name ?? '—')}
+                      </td>
+                      {/* A deal nobody has put anything into can be thrown
+                          away. Anything else is a record of work. */}
+                      <td className="cell-muted">
+                        {drafts.has(deal.id) ? <DiscardDraft dealId={deal.id} /> : null}
                       </td>
                     </tr>
                   );

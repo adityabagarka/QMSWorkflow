@@ -24,10 +24,10 @@ function SubmitButton() {
  * differently. Showing what we know before offering a blank field is what makes
  * that the easy path rather than the diligent one.
  *
- * Everything else about the company — brand and legal name, GSTIN, industry,
- * constitution — is asked for on the deal setup step, where the uploaded
- * documents can answer most of it. This screen only has to get far enough to
- * have somewhere to put them.
+ * Nothing else is asked here. Everything about the company and the expiring
+ * programme is on the next screen, where the uploaded documents answer most of
+ * it — including the expiry date, which used to be asked for here, before the
+ * policy copy that states it had been uploaded (ADR 0013).
  */
 export function DealForm() {
   const [result, submit] = useFormState<CreateDealResult, FormData>(createDeal, null);
@@ -120,10 +120,6 @@ export function DealForm() {
           ) : null}
         </>
       )}
-
-      <Field label="Policy expiry date">
-        <Input type="date" name="policy_expiry_date" />
-      </Field>
 
       {result && !result.ok ? (
         <p style={{ color: 'var(--plum-red-deep)', fontSize: 14 }}>{result.message}</p>

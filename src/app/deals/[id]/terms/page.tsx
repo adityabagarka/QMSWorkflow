@@ -182,19 +182,15 @@ export default async function TermsPage({ params }: { params: { id: string } }) 
 
   return (
     <main className="shell shell--wide">
-      <Masthead
-        user={session}
-        dealTitle={header.customer_name}
-        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
-      />
+      <Masthead user={session} dealTitle={header.customer_name} />
 
       <DealShell
         deal={header}
-        currentPhase={4}
-        maxReachedPhase={Math.max(currentPhase, 4)}
+        currentPhase={3}
+        maxReachedPhase={Math.max(currentPhase, 3)}
         title="Terms and options"
-        back={stageHref(header.id, 3)}
-        next={stageHref(header.id, 5)}
+        back={stageHref(header.id, 2)}
+        next={stageHref(header.id, 4)}
         nextLabel="build the RFQ"
         nextDisabled={outstanding > 0}
         wideAside

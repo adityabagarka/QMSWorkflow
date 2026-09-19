@@ -12,7 +12,7 @@ export default async function SignInPage({ searchParams }: { searchParams: { err
       <Masthead />
 
       <section className="section">
-        <p className="eyebrow">Rollover quote management</p>
+        <p className="eyebrow">Quote management</p>
         <h1>Sign in with your Plum account.</h1>
         <hr className="section__rule" />
         <p className="standfirst">

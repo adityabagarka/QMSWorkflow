@@ -30,8 +30,8 @@ const hankenGrotesk = Hanken_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'Rollover Quote Management',
-  description: 'Internal quote management for rollover deals.',
+  title: 'Quote Management',
+  description: 'Internal quote management for group insurance deals.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

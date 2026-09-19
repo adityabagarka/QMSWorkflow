@@ -133,10 +133,10 @@ export async function createDeal(
     after: { customer_id: customerId, owner_user_id: session.userId },
   });
 
-  // Documents first (ADR 0011): the roster, the claims dump and the expiring
-  // policy fill in most of what the later steps ask for, so the user meets the
-  // upload slots before any form.
-  redirect(`/deals/${data.id}/documents`);
+  // Straight into step 1, which is now the deal itself: the customer, the
+  // documents beside the fields they fill, and the expiring programme read out
+  // of them (ADR 0013).
+  redirect(`/deals/${data.id}`);
 }
 
 /**

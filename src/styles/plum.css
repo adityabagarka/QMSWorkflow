@@ -1912,6 +1912,15 @@ select.ff__control {
   margin: 0;
 }
 
+/* The name on the paperwork. Same register as the facts below it, so the brand
+   name keeps the weight — but its own line, because it is a different fact. */
+.summary__legal {
+  margin: 2px 0 0;
+  color: var(--fg-muted);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+}
+
 .summary__what {
   font-size: 12.5px;
   color: var(--fg-muted);

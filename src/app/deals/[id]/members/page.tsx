@@ -85,18 +85,14 @@ export default async function MembersStep({ params }: { params: { id: string } }
 
   return (
     <main className="shell">
-      <Masthead
-        user={session}
-        dealTitle={header.customer_name}
-        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
-      />
+      <Masthead user={session} dealTitle={header.customer_name} />
       <DealShell
         deal={header}
-        currentPhase={2}
-        maxReachedPhase={Math.max(currentPhase, 3)}
+        currentPhase={1}
+        maxReachedPhase={Math.max(currentPhase, 2)}
         title="Members"
-        back={stageHref(header.id, 1)}
-        next={stageHref(header.id, 3)}
+        back={stageHref(header.id, 0)}
+        next={stageHref(header.id, 2)}
         nextLabel="claims"
       >
         {isLoaded && summary ? (

@@ -42,17 +42,13 @@ export default async function RfqStep({
 
   return (
     <main className="shell">
-      <Masthead
-        user={session}
-        dealTitle={header.customer_name}
-        dealRef={header.deal_type === 'renewal' ? 'Renewal' : 'Rollover'}
-      />
+      <Masthead user={session} dealTitle={header.customer_name} />
       <DealShell
         deal={header}
-        currentPhase={5}
-        maxReachedPhase={Math.max(currentPhase, 5)}
+        currentPhase={4}
+        maxReachedPhase={Math.max(currentPhase, 4)}
         title="RFQ"
-        back={stageHref(header.id, 4)}
+        back={stageHref(header.id, 3)}
       >
         {blockers.length > 0 ? (
           <>
@@ -89,7 +85,7 @@ export default async function RfqStep({
                     return (
                       <Link
                         key={o.id}
-                        href={`${stageHref(header.id, 5)}?option=${o.id}`}
+                        href={`${stageHref(header.id, 4)}?option=${o.id}`}
                         className={picked ? 'optpick__one is-picked' : 'optpick__one'}
                       >
                         <span className="optpick__no">Option {o.option_no}</span>
