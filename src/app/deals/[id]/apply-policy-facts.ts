@@ -36,7 +36,23 @@ import {
  *    stand (migration 0043).
  */
 
-type Applied = { read: number; filled: number };
+export type Applied = {
+  read: number;
+  filled: number;
+  /**
+   * Why the deal is no fuller than it was, when it is not.
+   *
+   * A policy copy that yields nothing used to be indistinguishable from one
+   * nobody uploaded: the fill returned quietly and the fields stayed empty.
+   * Four of the fifteen sample policies are benefit charts rather than
+   * schedules and genuinely do not state a premium, a GSTIN or a period — a
+   * person needs telling that, not left to wonder whether the upload worked.
+   */
+  note: string | null;
+};
+
+const NOTHING_FOUND =
+  'Nothing in that file could be read: it states none of the details this step asks for. Some insurers issue a benefit chart rather than a policy schedule — fill these in by hand.';
 
 /** Which party list a name has to be resolved against before it is offered. */
 const PARTY_KIND: Partial<Record<string, 'insurer' | 'tpa' | 'broker'>> = {
@@ -55,16 +71,44 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
 
   const supabase = supabaseServer();
 
-  // Read once per document. Re-reading the same file cannot tell us anything
-  // new, and this runs on every load of the step.
+  /*
+   * Read once per document. Re-reading the same file cannot tell us anything
+   * new, and this runs on every load of the step.
+   *
+   * The marker is the `policy_read` event rather than the readings, because a
+   * file that yields no readings still has to count as read — otherwise a
+   * benefit chart is re-parsed on every page load forever, and the reason it
+   * gave nothing is gone by the time anybody looks.
+   */
   const { data: already } = await supabase
-    .from('policy_fact_reads')
-    .select('field')
+    .from('case_events')
+    .select('payload')
     .eq('case_id', dealId)
-    .eq('case_document_id', doc.id)
-    .limit(1);
+    .eq('event_type', 'policy_read')
+    .eq('payload->>document_id', doc.id)
+    .limit(1)
+    .returns<{ payload: { read?: number; filled?: number; note?: string | null } }[]>();
 
-  if (already && already.length > 0) return null;
+  const previous = already?.[0];
+  if (previous) {
+    return {
+      read: previous.payload.read ?? 0,
+      filled: previous.payload.filled ?? 0,
+      note: previous.payload.note ?? null,
+    };
+  }
+
+  /** What is recorded and returned when the document gave us nothing. */
+  async function nothing(note: string): Promise<Applied> {
+    await supabase.from('case_events').insert({
+      case_id: dealId,
+      event_type: 'policy_read',
+      actor_type: 'system',
+      actor_id: null,
+      payload: { document: doc!.file_name, document_id: doc!.id, read: 0, filled: 0, note },
+    });
+    return { read: 0, filled: 0, note };
+  }
 
   const file = await readStoredFile(doc);
   if (!file.ok) return null;
@@ -72,10 +116,11 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
   let outcome;
   try {
     outcome = readPolicyFacts(await readPdfText(file.bytes));
-  } catch {
-    return null;
+  } catch (err) {
+    console.error('applyPolicyFacts: could not read the PDF', (err as Error).message);
+    return nothing('That file could not be opened as a PDF, so nothing was read from it.');
   }
-  if (!outcome.ok) return null;
+  if (!outcome.ok) return nothing(outcome.message);
 
   const { data: deal } = await supabase
     .from('cases')
@@ -205,13 +250,21 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
     }
   }
 
+  const note = readings.length === 0 ? NOTHING_FOUND : null;
+
   await supabase.from('case_events').insert({
     case_id: dealId,
     event_type: 'policy_read',
     actor_type: 'system',
     actor_id: null,
-    payload: { document: doc.file_name, read: readings.length, filled },
+    payload: {
+      document: doc.file_name,
+      document_id: doc.id,
+      read: readings.length,
+      filled,
+      note,
+    },
   });
 
-  return { read: readings.length, filled };
+  return { read: readings.length, filled, note };
 }

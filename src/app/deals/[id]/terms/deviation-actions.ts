@@ -118,12 +118,13 @@ export async function detectOptionDeviations(
       'rfq',
     );
 
-    await supabase
-      .from('member_deviations')
-      .delete()
-      .eq('case_id', dealId)
-      .eq('source', 'rfq')
-      .eq('option_id', option.id);
+    // Same reason as the expiring-policy pass: a DELETE here removes nothing
+    // for anybody but a Super Admin, and the re-run then collides (0045).
+    await supabase.rpc('clear_member_deviations', {
+      p_case_id: dealId,
+      p_source: 'rfq',
+      p_option_id: option.id,
+    });
 
     if (found.length > 0) {
       await supabase.from('member_deviations').insert(

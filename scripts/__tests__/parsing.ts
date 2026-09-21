@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { parseCsv } from '../../src/lib/parsing/sheet';
 import { parseAmount, parseDate, parseRelationship, ageOn } from '../../src/lib/parsing/values';
 import { matchColumns, MEMBER_FIELDS, CLAIM_FIELDS } from '../../src/lib/parsing/columns';
-import { readRoster, summariseRoster } from '../../src/lib/parsing/roster';
+import { AGE_BANDS, readRoster, summariseRoster } from '../../src/lib/parsing/roster';
 import { readClaims, readMis, findDiscrepancies } from '../../src/lib/parsing/claims';
 
 let failures = 0;
@@ -276,6 +276,123 @@ check('a figure that disagrees is surfaced with both numbers, and nothing is cho
   assert.equal(outstanding?.computed, 250000);
   // Both are reported; the RM decides (ADR 0011 rule 5).
   assert.ok(outstanding!.gapPercent < 0, 'ours is lower than theirs');
+});
+
+console.log('\nthe demography reads the same way every time');
+
+check('employees come first, whatever order the file lists people in', () => {
+  const summary = summariseRoster([
+    {
+      rowNumber: 1,
+      employeeId: null,
+      name: 'A',
+      relationship: 'child',
+      gender: null,
+      dob: null,
+      age: 9,
+      sumInsured: null,
+      joinedOn: null,
+    },
+    {
+      rowNumber: 2,
+      employeeId: null,
+      name: 'B',
+      relationship: 'spouse',
+      gender: null,
+      dob: null,
+      age: 34,
+      sumInsured: null,
+      joinedOn: null,
+    },
+    {
+      rowNumber: 3,
+      employeeId: null,
+      name: 'C',
+      relationship: 'self',
+      gender: null,
+      dob: null,
+      age: 36,
+      sumInsured: null,
+      joinedOn: null,
+    },
+    {
+      rowNumber: 4,
+      employeeId: null,
+      name: 'D',
+      relationship: 'parent',
+      gender: null,
+      dob: null,
+      age: 68,
+      sumInsured: null,
+      joinedOn: null,
+    },
+  ]);
+
+  assert.deepEqual(Object.keys(summary.byRelationship), ['self', 'spouse', 'child', 'parent']);
+});
+
+check('age bands run low to high, with the empty ones still there', () => {
+  const summary = summariseRoster([
+    {
+      rowNumber: 1,
+      employeeId: null,
+      name: 'A',
+      relationship: 'self',
+      gender: null,
+      dob: null,
+      age: 40,
+      sumInsured: null,
+      joinedOn: null,
+    },
+    {
+      rowNumber: 2,
+      employeeId: null,
+      name: 'B',
+      relationship: 'child',
+      gender: null,
+      dob: null,
+      age: 9,
+      sumInsured: null,
+      joinedOn: null,
+    },
+  ]);
+
+  assert.deepEqual(
+    Object.keys(summary.byAgeBand),
+    AGE_BANDS.map(([band]) => band),
+  );
+  assert.equal(summary.byAgeBand['0\u201317'], 1);
+  assert.equal(summary.byAgeBand['36\u201345'], 1);
+  assert.equal(summary.byAgeBand['56\u201365'], 0, 'a band with nobody in it reads as none');
+});
+
+check('an unrecognised relationship is still counted, after the known ones', () => {
+  const summary = summariseRoster([
+    {
+      rowNumber: 1,
+      employeeId: null,
+      name: 'A',
+      relationship: 'cousin' as never,
+      gender: null,
+      dob: null,
+      age: 30,
+      sumInsured: null,
+      joinedOn: null,
+    },
+    {
+      rowNumber: 2,
+      employeeId: null,
+      name: 'B',
+      relationship: 'self',
+      gender: null,
+      dob: null,
+      age: 30,
+      sumInsured: null,
+      joinedOn: null,
+    },
+  ]);
+
+  assert.deepEqual(Object.keys(summary.byRelationship), ['self', 'cousin']);
 });
 
 if (failures > 0) {

@@ -2817,6 +2817,16 @@ select.ff__control {
   color: var(--fg-muted);
 }
 
+/* An age band nobody falls into.
+ *
+ * Kept in the table rather than dropped: a gap at 56-65 is a fact about the
+ * group, and a table that omits the row says nothing where it should say none.
+ * Set back so the bands that do have lives in them are what the eye lands on.
+ */
+.bandtable tr.is-empty td {
+  color: var(--fg-muted);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Claims reconciliation                                                   */
 /* ---------------------------------------------------------------------- */

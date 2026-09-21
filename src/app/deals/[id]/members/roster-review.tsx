@@ -127,7 +127,7 @@ export function RosterReview({
         </div>
       </div>
 
-      {Object.keys(summary.byAgeBand).length > 0 ? (
+      {summary.lives > summary.withoutAge ? (
         <table className="bandtable">
           <thead>
             <tr>
@@ -138,11 +138,13 @@ export function RosterReview({
           </thead>
           <tbody>
             {Object.entries(summary.byAgeBand).map(([band, count]) => (
-              <tr key={band}>
+              <tr key={band} className={count === 0 ? 'is-empty' : undefined}>
                 <td>{band}</td>
-                <td>{formatCount(count)}</td>
+                <td>{count === 0 ? '\u2014' : formatCount(count)}</td>
                 <td className="cell-muted">
-                  {Math.round((count / Math.max(summary.lives, 1)) * 100)}%
+                  {count === 0
+                    ? '\u2014'
+                    : `${Math.round((count / Math.max(summary.lives, 1)) * 100)}%`}
                 </td>
               </tr>
             ))}

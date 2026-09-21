@@ -9,8 +9,9 @@ import { STAGE, stageHref } from '@/lib/cases/phases';
 import { StepDocuments } from '@/components/step-documents';
 import { formatCount, formatDate } from '@/lib/format';
 import { summariseRoster } from '@/lib/parsing/roster';
-import { previewRoster, detectDeviations } from './actions';
+import { previewRoster } from './actions';
 import { RosterReview } from './roster-review';
+import { DeviationCheck } from './deviation-check';
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   self: 'Employees',
@@ -38,13 +39,6 @@ export default async function MembersStep({ params }: { params: { id: string } }
 
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
-
-  // Re-runnable on purpose: terms are often confirmed after the roster lands,
-  // and corrected after that.
-  async function runDeviationCheck() {
-    'use server';
-    await detectDeviations(params.id);
-  }
 
   const { data: deviations } = await supabase
     .from('member_deviations')
@@ -128,11 +122,13 @@ export default async function MembersStep({ params }: { params: { id: string } }
               </thead>
               <tbody>
                 {Object.entries(summary.byAgeBand).map(([band, count]) => (
-                  <tr key={band}>
+                  <tr key={band} className={count === 0 ? 'is-empty' : undefined}>
                     <td>{band}</td>
-                    <td>{formatCount(count)}</td>
+                    <td>{count === 0 ? '\u2014' : formatCount(count)}</td>
                     <td className="cell-muted">
-                      {Math.round((count / Math.max(summary.lives, 1)) * 100)}%
+                      {count === 0
+                        ? '\u2014'
+                        : `${Math.round((count / Math.max(summary.lives, 1)) * 100)}%`}
                     </td>
                   </tr>
                 ))}
@@ -179,13 +175,12 @@ export default async function MembersStep({ params }: { params: { id: string } }
               </>
             ) : null}
 
-            <form action={runDeviationCheck} style={{ marginTop: 28 }}>
-              <button className="button button--secondary" type="submit">
-                {deviations && deviations.length > 0
-                  ? 'check against the terms again'
-                  : 'check against the expiring terms'}
-              </button>
-            </form>
+            {/* Re-runnable on purpose: terms are often confirmed after the
+                roster lands, and corrected after that. */}
+            <DeviationCheck
+              dealId={params.id}
+              hasFindings={Boolean(deviations && deviations.length > 0)}
+            />
 
             <p style={{ marginTop: 20 }}>
               <Link href={stageHref(header.id, STAGE.deal)}>Upload a corrected roster</Link> to

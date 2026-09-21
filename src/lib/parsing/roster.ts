@@ -235,6 +235,33 @@ export function readRoster(sheet: Sheet, asOf: string, overrides?: Mapping): Ros
   };
 }
 
+/**
+ * The bands insurers rate on, not even decades, low to high.
+ *
+ * Exported because the order is part of the answer: the same seven rows in the
+ * same seven places, on the members screen and in the RFQ workbook alike.
+ */
+export const AGE_BANDS: [string, number, number][] = [
+  ['0\u201317', 0, 17],
+  ['18\u201335', 18, 35],
+  ['36\u201345', 36, 45],
+  ['46\u201355', 46, 55],
+  ['56\u201365', 56, 65],
+  ['66\u201375', 66, 75],
+  ['76+', 76, 200],
+];
+
+/** Employees first: every other count is a proportion of that one. */
+export const RELATIONSHIP_ORDER = [
+  'self',
+  'spouse',
+  'child',
+  'parent',
+  'parent_in_law',
+  'sibling',
+  'unknown',
+] as const;
+
 /** The demography the rates are built on, from a roster that has been read. */
 export function summariseRoster(members: MemberRow[]): {
   lives: number;
@@ -243,39 +270,53 @@ export function summariseRoster(members: MemberRow[]): {
   averageAge: number | null;
   withoutAge: number;
 } {
+  const counted: Record<string, number> = {};
   const byRelationship: Record<string, number> = {};
   const byAgeBand: Record<string, number> = {};
-
-  // The bands insurers rate on, not even decades.
-  const bands: [string, number, number][] = [
-    ['0–17', 0, 17],
-    ['18–35', 18, 35],
-    ['36–45', 36, 45],
-    ['46–55', 46, 55],
-    ['56–65', 56, 65],
-    ['66–75', 66, 75],
-    ['76+', 76, 200],
-  ];
 
   let ageTotal = 0;
   let aged = 0;
 
   for (const m of members) {
     const relationship = m.relationship ?? 'unknown';
-    byRelationship[relationship] = (byRelationship[relationship] ?? 0) + 1;
+    counted[relationship] = (counted[relationship] ?? 0) + 1;
 
     if (m.age === null) continue;
     aged += 1;
     ageTotal += m.age;
 
-    const band = bands.find(([, lo, hi]) => m.age! >= lo && m.age! <= hi);
+    const band = AGE_BANDS.find(([, lo, hi]) => m.age! >= lo && m.age! <= hi);
     if (band) byAgeBand[band[0]] = (byAgeBand[band[0]] ?? 0) + 1;
   }
+
+  /*
+   * Both breakdowns are built in a fixed order rather than in the order the
+   * file happened to mention people.
+   *
+   * A demography table is read by comparing it to the last one — and to the
+   * same table for another deal — which only works if the rows are in the same
+   * places every time. Employees first because that is the number every other
+   * number is a proportion of; ages low to high because a band is a position on
+   * a scale, not a label.
+   *
+   * Every band is present, including the empty ones: a gap at 56–65 is a fact
+   * about the group, and a table that omits it says nothing where it should say
+   * none.
+   */
+  for (const relationship of RELATIONSHIP_ORDER) {
+    if (counted[relationship]) byRelationship[relationship] = counted[relationship]!;
+  }
+  for (const [relationship, count] of Object.entries(counted)) {
+    if (!(relationship in byRelationship)) byRelationship[relationship] = count;
+  }
+
+  const ordered: Record<string, number> = {};
+  for (const [band] of AGE_BANDS) ordered[band] = byAgeBand[band] ?? 0;
 
   return {
     lives: members.length,
     byRelationship,
-    byAgeBand,
+    byAgeBand: ordered,
     averageAge: aged > 0 ? Math.round((ageTotal / aged) * 10) / 10 : null,
     withoutAge: members.length - aged,
   };

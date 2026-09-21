@@ -26,7 +26,7 @@ export default async function DealSetupStep({ params }: { params: { id: string }
    * form and the summary above it show the same thing. Runs once per document
    * and writes only into empty fields (see `applyPolicyFacts`).
    */
-  await applyPolicyFacts(params.id);
+  const readOutcome = await applyPolicyFacts(params.id);
 
   const [{ industries, entityTypes }, parties, { data: deal }, { data: events }] =
     await Promise.all([
@@ -98,6 +98,14 @@ export default async function DealSetupStep({ params }: { params: { id: string }
                 dealId={params.id}
                 kinds={['policy_copy', 'member_data', 'claims_dump', 'claims_mis']}
               />
+
+              {/* A policy copy that yielded nothing says so here, rather than
+                  leaving an empty form looking like a failed upload. */}
+              {readOutcome?.note ? (
+                <p className="ff__hint" style={{ marginTop: 12 }}>
+                  {readOutcome.note}
+                </p>
+              ) : null}
             </div>
 
             <div className="aside-block">
