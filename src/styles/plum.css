@@ -1051,6 +1051,77 @@ input[type='text'] {
   flex-wrap: wrap;
 }
 
+/* ----------------------------------------------------------------------
+ * The deal list's filters.
+ *
+ * A quiet row of controls, not a panel: filtering is something you do on the
+ * way to a deal, so the bar sits between the heading and the table without
+ * competing with either. Labels above the controls rather than beside them,
+ * because a row of six side-by-side labels reads as a sentence nobody wrote.
+ * ---------------------------------------------------------------------- */
+.dealfilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 16px 18px;
+  background: var(--cream-deep);
+  border: 1px solid var(--line-lavender-2);
+}
+
+.dealfilters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 150px;
+}
+
+.dealfilters__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--w-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--track-eyebrow);
+  color: var(--fg-muted);
+}
+
+.dealfilters .ff__control {
+  height: 36px;
+  font-size: 13.5px;
+  background-color: var(--cream);
+}
+
+.dealfilters select.ff__control {
+  background-position:
+    calc(100% - 17px) 16px,
+    calc(100% - 12px) 16px;
+}
+
+/* How many of how many, and the way back to all of them. */
+.dealfilters__count {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-left: auto;
+  padding-bottom: 9px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .dealfilters__field {
+    flex-basis: 100%;
+  }
+
+  .dealfilters__count {
+    margin-left: 0;
+  }
+}
+
 .timeline {
   list-style: none;
   margin: 0;

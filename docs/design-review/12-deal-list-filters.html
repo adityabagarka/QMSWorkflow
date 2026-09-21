@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../src/styles/plum.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <span class="masthead__left"><img class="masthead__logo" src="https://app.plumhq.com/images/plum_rebranded_logo.svg" alt="Plum" width="72" height="24"></span>
+        <div class="masthead__right">
+          <a class="masthead__nav">team &amp; access</a>
+          <div class="masthead__user"><span class="masthead__avatar">AB</span><div><div class="masthead__name">Aditya Bagarka</div><div class="masthead__role">Super Admin</div><button class="masthead__signout">sign out</button></div></div>
+        </div>
+      </header>
+
+      <section class="section">
+        <div class="section__head">
+          <h1>Deals</h1>
+          <a class="button">new deal</a>
+        </div>
+
+        <form class="dealfilters">
+          <label class="dealfilters__field"><span class="dealfilters__label">Stage</span>
+            <select class="ff__control"><option>Any</option><option>Deal</option><option>Members</option><option selected>Terms &amp; options</option><option>RFQ</option></select></label>
+          <label class="dealfilters__field"><span class="dealfilters__label">Cover starts</span>
+            <select class="ff__control"><option>Any</option><option>December 2026</option><option>January 2027</option><option>April 2027</option><option>No date set</option></select></label>
+          <label class="dealfilters__field"><span class="dealfilters__label">Incumbent insurer</span>
+            <select class="ff__control"><option>Any</option><option>ICICI Lombard</option><option>Tata AIG</option></select></label>
+          <label class="dealfilters__field"><span class="dealfilters__label">Customer</span>
+            <select class="ff__control"><option>Any</option><option>Meridian Logistics</option><option>Northwind Labs</option></select></label>
+          <label class="dealfilters__field"><span class="dealfilters__label">Deal type</span>
+            <select class="ff__control"><option>Any</option><option>Rollover</option><option>Renewal</option></select></label>
+          <label class="dealfilters__field"><span class="dealfilters__label">Owner</span>
+            <select class="ff__control"><option>Any</option><option>Mine</option></select></label>
+          <div class="dealfilters__count"><span>3 of 11</span><a class="linkish">clear</a></div>
+        </form>
+
+        <div class="table-wrap" style="margin-top: 28px">
+          <table>
+            <thead><tr><th>Company</th><th>Cover starts</th><th>Stage</th><th>Incumbent</th><th>Lives</th><th>Owner</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td><a>Meridian Logistics</a><div class="cell-muted" style="font-size:12.5px">Private Limited · Logistics · Pune, Maharashtra</div></td>
+                <td><div style="font-family:var(--font-display);font-size:17px">1 Dec 2026</div><div style="margin-top:4px"><span class="chip chip--critical">12 days</span></div></td>
+                <td class="cell-muted">Terms &amp; options</td>
+                <td class="cell-muted">ICICI Lombard</td>
+                <td style="font-family:var(--font-display);font-size:15px">1,840</td>
+                <td class="cell-muted">You</td>
+                <td class="cell-muted"></td>
+              </tr>
+              <tr>
+                <td><a>Northwind Labs</a><div class="cell-muted" style="font-size:12.5px">Private Limited · Pharma · Bengaluru, Karnataka</div></td>
+                <td><div style="font-family:var(--font-display);font-size:17px">1 Jan 2027</div><div style="margin-top:4px"><span class="chip chip--urgent">43 days</span></div></td>
+                <td class="cell-muted">Terms &amp; options</td>
+                <td class="cell-muted">ICICI Lombard</td>
+                <td style="font-family:var(--font-display);font-size:15px">312</td>
+                <td class="cell-muted">Priya N</td>
+                <td class="cell-muted"></td>
+              </tr>
+              <tr>
+                <td><a>Calico Textiles</a><div class="cell-muted" style="font-size:12.5px">Private Limited · Manufacturing · Surat, Gujarat</div></td>
+                <td><div style="font-family:var(--font-display);font-size:17px">1 Apr 2027</div><div style="margin-top:4px"><span class="chip">133 days</span></div></td>
+                <td class="cell-muted">Terms &amp; options</td>
+                <td class="cell-muted">ICICI Lombard</td>
+                <td style="font-family:var(--font-display);font-size:15px">96</td>
+                <td class="cell-muted">You</td>
+                <td class="cell-muted"><button class="linkish">discard</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

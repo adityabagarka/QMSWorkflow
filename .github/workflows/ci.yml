@@ -90,6 +90,7 @@ jobs:
       - run: npm run test:extraction
       - run: npm run test:policy-facts
       - run: npm run test:policy-fill
+      - run: npm run test:deal-filters
 
       - name: Apply migrations
         run: npm run db:migrate

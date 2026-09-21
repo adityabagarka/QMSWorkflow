@@ -35,6 +35,7 @@
     "test:term-writes": "tsx scripts/__tests__/term-writes.ts",
     "test:policy-facts": "tsx scripts/__tests__/policy-facts.ts",
     "test:policy-fill": "tsx scripts/__tests__/policy-fill.ts",
+    "test:deal-filters": "tsx scripts/__tests__/deal-filters.ts",
     "test:page-queries": "tsx scripts/__tests__/page-queries.ts"
   },
   "dependencies": {
