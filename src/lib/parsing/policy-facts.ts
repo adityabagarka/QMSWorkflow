@@ -99,6 +99,23 @@ const LABELS: Record<string, RegExp[]> = {
 const GSTIN = /\b\d{2}[A-Z]{5}\d{4}[A-Z][0-9A-Z]{3}\b/;
 
 /**
+ * A GSTIN on a schedule belongs to the insurer unless something says otherwise.
+ *
+ * ICICI Lombard prints theirs and not the customer's: the only GSTIN in a
+ * 52-page Poshmark policy is "GSTIN Reg. No : 29AAACI7904G1ZJ", which is ICICI
+ * Lombard's own. Taken as the customer's it puts an insurer's tax number on a
+ * company — and `customers.gstin` is unique, so the next ICICI deal would
+ * collide with the first and fail for reasons nobody could read.
+ *
+ * TATA AIG prints the customer's, in the policyholder block, with none of these
+ * markers beside it. So the markers decide, and a GSTIN that cannot be
+ * attributed is left out: no GSTIN is a blank somebody fills in, and the wrong
+ * one is a wrong company.
+ */
+const INSURER_GSTIN_MARKERS =
+  /\b(reg\.?\s*no|registration|registered\s+office|corporate\s+office|cin|irda|gic\b|insurance\s+compan)/i;
+
+/**
  * A date as Indian policies write one. All four forms are in the sample:
  * 08/04/2026 (TATA AIG), 16-APR-26 (Bajaj), 1 Nov 2026, and Mar 28, 2026
  * (ICICI Lombard, month first with a comma).
@@ -235,16 +252,21 @@ export function readPolicyFacts(text: PdfText): FactsOutcome {
    * where no label carries one it is still safe to take from the text. Several
    * schedules print it in a footer block with no label at all.
    */
-  let gstin = scan(head, LABELS.gstin!, (raw) => GSTIN.exec(raw.toUpperCase())?.[0] ?? null);
-  if (!gstin) {
-    outerGstin: for (const { page, lines } of head) {
-      for (const line of lines) {
-        const found = GSTIN.exec(line.toUpperCase());
-        if (found) {
-          gstin = { value: found[0], evidence: line.replace(/\t/g, ' ').trim(), page };
-          break outerGstin;
-        }
-      }
+  let gstin: Fact<string> | null = null;
+  outerGstin: for (const { page, lines } of head) {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = (lines[i] ?? '').replace(/\t/g, ' ');
+      const found = GSTIN.exec(line.toUpperCase());
+      if (!found) continue;
+
+      // The insurer names itself around its own number, on the same line or
+      // the one after — "IL GIC GSTIN Address", "Registered office", the CIN.
+      const context = [lines[i - 1] ?? '', line, lines[i + 1] ?? ''].join(' ');
+      if (INSURER_GSTIN_MARKERS.test(context)) continue;
+      if (insurerName && new RegExp(insurerName.value.split(' ')[0]!, 'i').test(context)) continue;
+
+      gstin = { value: found[0], evidence: line.trim(), page };
+      break outerGstin;
     }
   }
 
@@ -256,9 +278,18 @@ export function readPolicyFacts(text: PdfText): FactsOutcome {
       insurerName,
       tpaName: scan(head, LABELS.tpaName!, asText),
       brokerName: scan(head, LABELS.brokerName!, asText),
-      policyNumber: scan(head, LABELS.policyNumber!, (raw) =>
-        /[A-Za-z0-9]{6,}/.test(raw.replace(/\s/g, '')) ? asText(raw) : null,
-      ),
+      /*
+       * A policy number is an identifier: mostly digits, long, and not a
+       * sentence. Without that it read "a. Policy schedule" off ICICI
+       * Lombard's Customer Information Sheet, whose second column says which
+       * clause to look at rather than what the value is.
+       */
+      policyNumber: scan(head, LABELS.policyNumber!, (raw) => {
+        const candidate = raw.trim();
+        if (!/^[A-Za-z0-9][A-Za-z0-9/\-]{7,}$/.test(candidate)) return null;
+        if (!/\d{4}/.test(candidate)) return null;
+        return candidate;
+      }),
       policyholderName: scan(head, LABELS.policyholderName!, asText),
       gstin,
       sumInsured: scan(head, LABELS.sumInsured!, asAmount),

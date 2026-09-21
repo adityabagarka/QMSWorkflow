@@ -165,11 +165,37 @@ check('month-first dates with a comma', () => {
   assert.equal(f.policyEnd?.value, '2027-03-27');
 });
 
-check('a GSTIN with no label at all', () => {
-  const f = facts([
-    ['Registered office: somewhere', 'CIN: U85110MH2000PLC128425 GSTIN 33AAKCC0146L1ZR'],
-  ]);
+check('a GSTIN in the policyholder block, with no label', () => {
+  // TATA AIG prints the customer's here, beside the client id and the state
+  // code, with nothing of the insurer's around it.
+  const f = facts([['Client ID 6235692692\tGSTIN 33AAKCC0146L1ZR', 'GST State Code 33']]);
   assert.equal(f.gstin?.value, '33AAKCC0146L1ZR');
+});
+
+check("the insurer's own GSTIN is not the customer's", () => {
+  /*
+   * The only GSTIN in a 52-page ICICI Lombard policy is their own:
+   * "GSTIN Reg. No : 29AAACI7904G1ZJ", in a block that then gives their
+   * registered address. Taken as the customer's it puts an insurer's tax
+   * number on a company — and `customers.gstin` is unique, so the next ICICI
+   * deal collides with the first and fails unreadably.
+   */
+  const f = facts([
+    [
+      'GSTIN Reg. No : 29AAACI7904G1ZJ',
+      'IL GIC GSTIN Address : 414, ICICI Lombard House Veer Sawarkar Marg Mumbai',
+    ],
+  ]);
+  assert.equal(f.gstin, null, 'no GSTIN is a blank to fill; the wrong one is a wrong company');
+});
+
+check('a policy number is an identifier, not a cross-reference', () => {
+  // ICICI's Customer Information Sheet puts "a. Policy schedule" in the column
+  // beside the label — where to look, not what the value is.
+  assert.equal(
+    facts([['Policy Number\ta. Policy schedule', '4016/X/344052075/02/000']]).policyNumber?.value,
+    '4016/X/344052075/02/000',
+  );
 });
 
 check('the insurer names itself in its letterhead', () => {

@@ -9,8 +9,6 @@ import type { Party } from '@/lib/cases/parties';
 import { constitutionFromLegalName } from '@/lib/cases/constitution';
 import { GST_INPUT_HINT } from '@/lib/format';
 import { saveDealSetup, type SaveResult } from './actions';
-import { PolicyFactsPanel } from './policy-facts-panel';
-import type { FactsResult } from './read-policy-facts';
 
 /** Shared with the page, so the step footer can submit this form. */
 export const DEAL_SETUP_FORM_ID = 'deal-setup';
@@ -62,7 +60,6 @@ export function DealSetupForm({
   insurers,
   tpas,
   brokers,
-  policyFacts,
 }: {
   dealId: string;
   initial: {
@@ -85,28 +82,14 @@ export function DealSetupForm({
   insurers: Party[];
   tpas: Party[];
   brokers: Party[];
-  policyFacts: FactsResult;
 }) {
   const [result, submit] = useFormState<SaveResult, FormData>(
     saveDealSetup.bind(null, dealId),
     null,
   );
 
-  /*
-   * What the policy copy says, where the deal does not say it already.
-   *
-   * Applied rather than offered. Every value used to arrive with a "use"
-   * button, which put a decision between reading and reviewing — and the
-   * reviewing is the point. A saved value is never overwritten: the register
-   * and a person both beat a schedule that can be three renewals old
-   * (ADR 0011 rule 4), so this only fills what is empty.
-   */
-  const read = policyFacts?.ok ? policyFacts.facts : {};
-  const readValue = (key: keyof typeof read, current: string | null) =>
-    current && current.trim() ? current : (read[key]?.value ?? '');
-
-  const [gstin, setGstin] = useState(readValue('gstin', initial.gstin));
-  const [name, setName] = useState(readValue('policyholderName', initial.legal_name));
+  const [gstin, setGstin] = useState(initial.gstin ?? '');
+  const [name, setName] = useState(initial.legal_name);
   const [brand, setBrand] = useState(initial.brand_name ?? '');
   const [location, setLocation] = useState(initial.location ?? '');
   const [entityType, setEntityType] = useState(initial.entity_type ?? '');
@@ -115,15 +98,12 @@ export function DealSetupForm({
   const [linkedin, setLinkedin] = useState(initial.linkedin_url ?? '');
   const [lookup, setLookup] = useState<'idle' | 'found' | 'missing'>('idle');
   const [saved, setSaved] = useState<'clean' | 'saving' | 'saved' | 'error'>('clean');
-  const [broker, setBroker] = useState(readValue('brokerName', initial.broker_name));
-  const [insurer, setInsurer] = useState(readValue('insurerName', initial.insurer_name));
-  const [tpa, setTpa] = useState(readValue('tpaName', initial.tpa_name));
-  const [expiry, setExpiry] = useState(readValue('policyEnd', initial.policy_expiry_date));
+  const [broker, setBroker] = useState(initial.broker_name ?? '');
+  const [insurer, setInsurer] = useState(initial.insurer_name ?? '');
+  const [tpa, setTpa] = useState(initial.tpa_name ?? '');
+  const [expiry, setExpiry] = useState(initial.policy_expiry_date ?? '');
   const [premium, setPremium] = useState(
-    readValue(
-      'premium',
-      initial.expiring_premium === null ? null : String(initial.expiring_premium),
-    ),
+    initial.expiring_premium === null ? '' : String(initial.expiring_premium),
   );
 
   /*
@@ -219,7 +199,6 @@ export function DealSetupForm({
     <form action={submit} id={DEAL_SETUP_FORM_ID} ref={form}>
       {/* The footer's button is what moves on; everything else just saves. */}
       <input type="hidden" name="advance" value="yes" />
-      <PolicyFactsPanel result={policyFacts} />
 
       <Section
         title="Company"

@@ -169,6 +169,41 @@ export async function saveDealSetup(
 
   if (caseError) return { ok: false, message: caseError.message };
 
+  /*
+   * Tell the reading what became of it.
+   *
+   * `policy_fact_reads` holds what the policy said; this is what a person let
+   * stand. Together they answer "was this read or typed?" on a deal, and across
+   * deals they say which fields the parser can be trusted with — the same
+   * signal `policy_extraction_edits` gives us for terms (migration 0043).
+   *
+   * The reading itself is never touched: a correction only means something
+   * against the original, and the database refuses to rewrite it.
+   */
+  const settled: Record<string, string | null> = {
+    legal_name: legalName,
+    gstin: normaliseGstin(text('gstin')),
+    insurer_name: insurerName,
+    broker_name: brokerName,
+    tpa_name: tpaName,
+    expiring_premium: text('expiring_premium'),
+    policy_expiry_date: expiry,
+  };
+
+  const { data: readings } = await supabase
+    .from('policy_fact_reads')
+    .select('id, field')
+    .eq('case_id', dealId)
+    .returns<{ id: string; field: string }[]>();
+
+  for (const reading of readings ?? []) {
+    if (!(reading.field in settled)) continue;
+    await supabase
+      .from('policy_fact_reads')
+      .update({ saved_value: settled[reading.field], settled_at: new Date().toISOString() })
+      .eq('id', reading.id);
+  }
+
   await supabase.from('case_events').insert({
     case_id: dealId,
     event_type: 'deal_setup_saved',

@@ -8,7 +8,7 @@ import { stageHref } from '@/lib/cases/phases';
 import { appetiteOptions } from '@/lib/cases/appetite';
 import { partyOptions } from '@/lib/cases/parties';
 import { StepDocuments } from '@/components/step-documents';
-import { readPolicyFactsFor } from './read-policy-facts';
+import { applyPolicyFacts } from './apply-policy-facts';
 import { formatDateTime } from '@/lib/format';
 import { DealSetupForm, DEAL_SETUP_FORM_ID } from './deal-setup-form';
 
@@ -21,13 +21,17 @@ export default async function DealSetupStep({ params }: { params: { id: string }
   const { header, currentPhase } = loaded;
   const supabase = supabaseServer();
 
-  const [{ industries, entityTypes }, parties, policyFacts, { data: deal }, { data: events }] =
+  /*
+   * Fill the deal from the policy copy before anything is read back, so the
+   * form and the summary above it show the same thing. Runs once per document
+   * and writes only into empty fields (see `applyPolicyFacts`).
+   */
+  await applyPolicyFacts(params.id);
+
+  const [{ industries, entityTypes }, parties, { data: deal }, { data: events }] =
     await Promise.all([
       appetiteOptions(),
       partyOptions(),
-      // Rules only — no model and no key — so it runs on every load rather than
-      // waiting for somebody to ask for it.
-      readPolicyFactsFor(params.id, null),
       supabase
         .from('cases')
         .select(
@@ -133,7 +137,6 @@ export default async function DealSetupStep({ params }: { params: { id: string }
           }}
           industries={industries}
           entityTypes={entityTypes}
-          policyFacts={policyFacts}
           insurers={parties.insurers}
           tpas={parties.tpas}
           brokers={parties.brokers}
