@@ -267,6 +267,55 @@ check('nothing is invented when the document does not say', () => {
   assert.equal(f.sumInsured, null);
 });
 
+console.log('\nthe city, off the address');
+
+check("the policyholder's city is read and named as the list names it", () => {
+  const f = facts([
+    [
+      'ICICI Lombard General Insurance Company Limited',
+      "Policy Holder's Name\t:\tSynthetic Softworks Private Limited",
+      "Policy Holder's Address\t:\tUnit 4, Magarpatta City",
+      'Hadapsar, Pune 411028',
+      'Maharashtra, India',
+    ],
+  ]);
+  assert.equal(f.location?.value, 'Pune, Maharashtra');
+});
+
+check("the insurer's own registered office is not the customer's city", () => {
+  // Every schedule carries one, usually in a bigger typeface than the
+  // customer's. Read as the customer's it puts Mumbai on a Pune company.
+  const f = facts([
+    [
+      'Tata AIG General Insurance Company Limited',
+      'Registered Office Address: Peninsula Business Park, Lower Parel, Mumbai 400013',
+      'Communication Address\t:\tPlot 12, Sector 18',
+      'Gurugram 122015, Haryana',
+    ],
+  ]);
+  assert.equal(f.location?.value, 'Gurugram, Haryana');
+});
+
+check('a longer city name wins over the shorter one inside it', () => {
+  const f = facts([["Insured's Address\t:\tB-14, Sector 62", 'Navi Mumbai 400703, Maharashtra']]);
+  assert.equal(f.location?.value, 'Navi Mumbai, Maharashtra');
+});
+
+check('a city with no address around it is not taken', () => {
+  // "Chennai" in a grievance sentence is not where the company sits. Without
+  // a PIN or the state beside it, there is no address here.
+  const f = facts([
+    ['Communication Address for grievances is available on our website'],
+    ['Escalate to the Chennai zonal officer if unresolved'],
+  ]);
+  assert.equal(f.location, null);
+});
+
+check('no address means no city, not a guess', () => {
+  const f = facts([['Policy Benefit Chart', 'Relation\tCoverage\tLimit']]);
+  assert.equal(f.location, null);
+});
+
 if (failures > 0) {
   console.error(`\n${failures} assertion(s) failed.`);
   process.exit(1);

@@ -1,4 +1,5 @@
 import { parseAmount, parseDate } from '@/lib/parsing/values';
+import { CITIES, cityLabel } from '@/lib/cases/cities';
 import { bespokePages, type PdfPage, type PdfText } from '@/lib/parsing/pdf-text';
 
 /**
@@ -34,6 +35,8 @@ export type PolicyFacts = {
   premium: Fact<number> | null;
   gstin: Fact<string> | null;
   policyholderName: Fact<string> | null;
+  /** The customer's city, as `"Pune, Maharashtra"` — the Location vocabulary. */
+  location: Fact<string> | null;
   lives: Fact<number> | null;
 };
 
@@ -95,6 +98,41 @@ const LABELS: Record<string, RegExp[]> = {
   premium: [/net\s+premium/i, /total\s+premium/i, /gross\s+premium/i, /premium\s+amount/i],
   lives: [/total\s+no\.?\s+of\s+insured\s+person/i, /total\s+lives/i, /number\s+of\s+lives/i],
 };
+
+/**
+ * Where the customer's own address is announced.
+ *
+ * Deliberately not a bare `/address/`: every schedule carries the insurer's
+ * registered office, the TPA's service address and a grievance address, and any
+ * of those would put the wrong city on the company. The label has to say whose
+ * address it is, or sit inside the policyholder block.
+ */
+const ADDRESS_LABELS: RegExp[] = [
+  /policy\s*holder'?s?\s+address/i,
+  /insured'?s?\s+address/i,
+  /address\s+of\s+(the\s+)?(insured|policy\s*holder|proposer)/i,
+  /(communication|mailing|correspondence)\s+address/i,
+  /client\s+address/i,
+];
+
+/** An Indian PIN code — what makes a block of text an address rather than prose. */
+const PIN = /\b[1-9]\d{5}\b/;
+
+/**
+ * The city list, longest name first.
+ *
+ * Longest first so "Navi Mumbai" is not read as "Mumbai" and "New Delhi" not as
+ * "Delhi" — both pairs are in the list, and both resolve to different rows.
+ */
+const CITY_PATTERNS: { label: string; pattern: RegExp }[] = [...CITIES]
+  .sort((a, b) => b.city.length - a.city.length)
+  .map((entry) => ({
+    label: cityLabel(entry),
+    pattern: new RegExp(
+      `(^|[^A-Za-z])${entry.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`,
+      'i',
+    ),
+  }));
 
 const GSTIN = /\b\d{2}[A-Z]{5}\d{4}[A-Z][0-9A-Z]{3}\b/;
 
@@ -291,6 +329,7 @@ export function readPolicyFacts(text: PdfText): FactsOutcome {
         return candidate;
       }),
       policyholderName: scan(head, LABELS.policyholderName!, asText),
+      location: scanLocation(head, insurerName),
       gstin,
       sumInsured: scan(head, LABELS.sumInsured!, asAmount),
       premium: scan(head, LABELS.premium!, asAmount),
@@ -302,6 +341,60 @@ export function readPolicyFacts(text: PdfText): FactsOutcome {
       policyEnd: dates.end,
     },
   };
+}
+
+/**
+ * The customer's city, read off the address on the schedule.
+ *
+ * Industry, website and LinkedIn are not on a policy and never will be; the
+ * address is, on every schedule that names a policyholder at all. Taking the
+ * city from it saves the one company fact the document actually carries.
+ *
+ * Two guards, because a schedule is full of addresses that are not the
+ * customer's. The window is refused if the insurer names itself in it or if it
+ * reads as a registered office, a CIN or an IRDAI line; and the block has to
+ * look like an address — a PIN code, or the city's own state beside it — before
+ * a city name in it counts. A wrong city is worse than no city: it is a fact
+ * about the company that nobody typed and everybody trusts.
+ *
+ * The value returned is a `CITIES` label ("Pune, Maharashtra"), so what the
+ * parser writes and what the Location typeahead offers are the same vocabulary.
+ */
+function scanLocation(pages: PdfPage[], insurerName: Fact<string> | null): Fact<string> | null {
+  const insurerWord = insurerName ? new RegExp(insurerName.value.split(' ')[0]!, 'i') : null;
+
+  const read = (labels: RegExp[], span: number): Fact<string> | null => {
+    for (const { page, lines } of pages) {
+      for (let i = 0; i < lines.length; i += 1) {
+        const line = (lines[i] ?? '').replace(/\t/g, ' ');
+        if (!labels.some((label) => label.test(line))) continue;
+
+        const window = lines
+          .slice(i, i + span)
+          .join(' ')
+          .replace(/\t/g, ' ');
+
+        if (INSURER_GSTIN_MARKERS.test(window)) continue;
+        if (insurerWord && insurerWord.test(window)) continue;
+
+        for (const { label, pattern } of CITY_PATTERNS) {
+          if (!pattern.test(window)) continue;
+          const state = label.slice(label.indexOf(', ') + 2);
+          if (!PIN.test(window) && !new RegExp(state, 'i').test(window)) continue;
+          return { value: label, evidence: window.replace(/\s+/g, ' ').trim().slice(0, 200), page };
+        }
+      }
+    }
+    return null;
+  };
+
+  /*
+   * A labelled address first. Where there is none — TATA AIG prints the
+   * policyholder's address under their name with no label of its own — the
+   * block beneath the policyholder name is read instead, which is why that
+   * fallback has the tighter window.
+   */
+  return read(ADDRESS_LABELS, 6) ?? read(LABELS.policyholderName!, 5);
 }
 
 /**

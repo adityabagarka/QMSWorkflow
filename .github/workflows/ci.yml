@@ -89,6 +89,7 @@ jobs:
       - run: npm run test:rfq
       - run: npm run test:extraction
       - run: npm run test:policy-facts
+      - run: npm run test:policy-fill
 
       - name: Apply migrations
         run: npm run db:migrate

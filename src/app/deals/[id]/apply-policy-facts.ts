@@ -5,6 +5,13 @@ import { getSession } from '@/lib/auth/session';
 import { loadDocument, readStoredFile } from '@/lib/cases/read-document';
 import { readPdfText } from '@/lib/parsing/pdf-text';
 import { readPolicyFacts } from '@/lib/parsing/policy-facts';
+import {
+  CUSTOMER_FIELDS,
+  POLICY_FIELDS,
+  firstWriteError,
+  planPolicyFill,
+  type ReadValue,
+} from './policy-fill-plan';
 
 /**
  * Fills the deal from the policy copy, once, as soon as the document is there.
@@ -30,19 +37,6 @@ import { readPolicyFacts } from '@/lib/parsing/policy-facts';
  */
 
 type Applied = { read: number; filled: number };
-
-/** What the reader calls a fact, against where it lives on the deal. */
-const CUSTOMER_FIELDS = {
-  policyholderName: 'legal_name',
-  gstin: 'gstin',
-} as const;
-
-const POLICY_FIELDS = {
-  insurerName: 'insurer_name',
-  brokerName: 'broker_name',
-  tpaName: 'tpa_name',
-  premium: 'expiring_premium',
-} as const;
 
 /** Which party list a name has to be resolved against before it is offered. */
 const PARTY_KIND: Partial<Record<string, 'insurer' | 'tpa' | 'broker'>> = {
@@ -85,12 +79,12 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
 
   const { data: deal } = await supabase
     .from('cases')
-    .select('customer_id, policy_expiry_date, customers(legal_name, gstin)')
+    .select('customer_id, policy_expiry_date, customers(legal_name, gstin, location)')
     .eq('id', dealId)
     .maybeSingle<{
       customer_id: string;
       policy_expiry_date: string | null;
-      customers: { legal_name: string; gstin: string | null } | null;
+      customers: { legal_name: string; gstin: string | null; location: string | null } | null;
     }>();
 
   if (!deal) return null;
@@ -114,68 +108,32 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
     return (data as string | null) ?? value;
   }
 
-  const customerPatch: Record<string, string> = {};
-  const policyPatch: Record<string, string> = {};
-  const readings: {
-    case_id: string;
-    case_document_id: string;
-    field: string;
-    read_value: string;
-    read_page: number;
-    saved_value: string | null;
-  }[] = [];
-
-  let filled = 0;
-
+  const values: Record<string, ReadValue> = {};
   for (const [key, fact] of Object.entries(outcome.facts)) {
     if (!fact) continue;
-
-    const value = await resolved(key, String(fact.value));
-
-    const customerField = CUSTOMER_FIELDS[key as keyof typeof CUSTOMER_FIELDS];
-    const policyField = POLICY_FIELDS[key as keyof typeof POLICY_FIELDS];
-
-    let current: string | null = null;
-    if (customerField === 'legal_name') current = deal.customers?.legal_name ?? null;
-    if (customerField === 'gstin') current = deal.customers?.gstin ?? null;
-    if (policyField) {
-      const held = policy?.[policyField as keyof typeof policy];
-      current = held === null || held === undefined ? null : String(held);
+    if (!(key in CUSTOMER_FIELDS) && !(key in POLICY_FIELDS) && key !== 'policyEnd') {
+      continue;
     }
-    if (key === 'policyEnd') current = deal.policy_expiry_date;
-
-    const empty = !current || !String(current).trim();
-
-    if (empty) {
-      if (customerField) customerPatch[customerField] = value;
-      if (policyField) policyPatch[policyField] = value;
-      if (key === 'policyEnd') policyPatch.__expiry = value;
-      if (customerField || policyField || key === 'policyEnd') filled += 1;
-    }
-
-    readings.push({
-      case_id: dealId,
-      case_document_id: doc.id,
-      field: customerField ?? policyField ?? (key === 'policyEnd' ? 'policy_expiry_date' : key),
-      read_value: value,
-      read_page: fact.page,
-      saved_value: empty ? value : (current ?? null),
-    });
+    values[key] = { value: await resolved(key, String(fact.value)), page: fact.page };
   }
 
-  const expiry = policyPatch.__expiry;
-  delete policyPatch.__expiry;
+  const plan = planPolicyFill(values, {
+    legal_name: deal.customers?.legal_name ?? null,
+    gstin: deal.customers?.gstin ?? null,
+    location: deal.customers?.location ?? null,
+    insurer_name: policy?.insurer_name ?? null,
+    broker_name: policy?.broker_name ?? null,
+    tpa_name: policy?.tpa_name ?? null,
+    expiring_premium: policy?.expiring_premium ?? null,
+    policy_expiry_date: deal.policy_expiry_date,
+  });
 
-  /*
-   * A legal name that is really a GSTIN is refused everywhere else (0028), and
-   * the reader can produce one where a schedule prints the two together.
-   */
-  if (
-    customerPatch.legal_name &&
-    /^[0-9]{2}[A-Za-z]{5}[0-9]{4}[A-Za-z][0-9A-Za-z]{3}$/.test(customerPatch.legal_name)
-  ) {
-    delete customerPatch.legal_name;
-  }
+  const { customerPatch, policyPatch, expiry, filled } = plan;
+  const readings = plan.readings.map((reading) => ({
+    case_id: dealId,
+    case_document_id: doc.id,
+    ...reading,
+  }));
 
   /*
    * Never write a GSTIN another customer already holds.
@@ -197,18 +155,54 @@ export async function applyPolicyFacts(dealId: string): Promise<Applied | null> 
     if (taken) delete customerPatch.gstin;
   }
 
+  /*
+   * The writes have to succeed before the read is recorded.
+   *
+   * These three used to be fired and forgotten. When the `policies` update
+   * failed — a column the staging database had not been migrated to yet — the
+   * customer patch still landed, the readings were still written and the
+   * activity still said "policy read", while insurer, broker, TPA and premium
+   * stayed empty on the deal. Worse, the readings are what stops this running
+   * twice, so the failure was permanent: every later load saw the marker and
+   * returned early. A failed write now leaves nothing behind, so the next load
+   * tries again, and the reason reaches the server log instead of nowhere.
+   */
+  const writes: [string, { error: { message: string } | null }][] = [];
+
   if (Object.keys(customerPatch).length > 0) {
-    await supabase.from('customers').update(customerPatch).eq('id', deal.customer_id);
+    writes.push([
+      'customers',
+      await supabase.from('customers').update(customerPatch).eq('id', deal.customer_id),
+    ]);
   }
   if (Object.keys(policyPatch).length > 0) {
-    await supabase.from('policies').update(policyPatch).eq('case_id', dealId);
+    writes.push([
+      'policies',
+      await supabase.from('policies').update(policyPatch).eq('case_id', dealId),
+    ]);
   }
   if (expiry) {
-    await supabase.from('cases').update({ policy_expiry_date: expiry }).eq('id', dealId);
+    writes.push([
+      'cases',
+      await supabase.from('cases').update({ policy_expiry_date: expiry }).eq('id', dealId),
+    ]);
+  }
+
+  const failure = firstWriteError(writes);
+  if (failure) {
+    console.error(`applyPolicyFacts: ${failure.table} write failed`, failure.message);
+    return null;
   }
 
   if (readings.length > 0) {
-    await supabase.from('policy_fact_reads').upsert(readings, { onConflict: 'case_id,field' });
+    const { error } = await supabase
+      .from('policy_fact_reads')
+      .upsert(readings, { onConflict: 'case_id,field' });
+
+    if (error) {
+      console.error('applyPolicyFacts: policy_fact_reads write failed', error.message);
+      return null;
+    }
   }
 
   await supabase.from('case_events').insert({

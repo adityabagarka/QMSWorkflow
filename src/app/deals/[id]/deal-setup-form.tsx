@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Field, FieldRow, Input, Select, Typeahead } from '@/components/form';
+import { Section } from '@/components/form-section';
 import { looksLikeGstin, lookupGstin } from '@/lib/cases/gstin';
 import { searchCities } from '@/lib/cases/cities';
 import type { Party } from '@/lib/cases/parties';
@@ -12,45 +13,6 @@ import { saveDealSetup, type SaveResult } from './actions';
 
 /** Shared with the page, so the step footer can submit this form. */
 export const DEAL_SETUP_FORM_ID = 'deal-setup';
-
-/**
- * A section that can be folded away.
- *
- * The two halves of this step are not equal. A company is a once-a-year fact —
- * looked at on the first deal and reviewed occasionally after — while the deal
- * is what every RFQ turns on. Showing both open, one after another, made a long
- * form out of a short one and buried the part that changes.
- */
-function Section({
-  title,
-  summary,
-  defaultOpen,
-  children,
-}: {
-  title: string;
-  summary?: string;
-  defaultOpen: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <section className={open ? 'formsec formsec--open' : 'formsec'}>
-      <button
-        className="formsec__toggle"
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        <span className="formsec__caret">{open ? '▾' : '▸'}</span>
-        <span className="formsec__title">{title}</span>
-        {!open && summary ? <span className="formsec__summary">{summary}</span> : null}
-      </button>
-
-      {open ? <div className="formsec__body">{children}</div> : null}
-    </section>
-  );
-}
 
 export function DealSetupForm({
   dealId,
